@@ -24,7 +24,6 @@ public static class LlmConfiguration
 
             services.AddSingleton<IChatClient>(_ => new GenerativeAIChatClient(apiKey, model));
 
-            services.AddScoped<S3ArquivoDownloader>();
             services.AddScoped<IDiagramaAnaliseClient, LlmDiagramaAnaliseClient>();
         }
 

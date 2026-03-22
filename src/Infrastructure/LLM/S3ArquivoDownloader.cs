@@ -9,7 +9,7 @@ namespace Infrastructure.LLM;
 /// <summary>
 /// Realiza download de arquivos do S3 para envio à LLM.
 /// </summary>
-public class S3ArquivoDownloader
+public class S3ArquivoDownloader : IArquivoDiagramaDownloader
 {
     private readonly IAmazonS3 _s3Client;
     private readonly IAppLogger _logger;

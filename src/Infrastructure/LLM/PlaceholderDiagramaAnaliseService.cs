@@ -7,7 +7,7 @@ namespace Infrastructure.LLM;
 /// </summary>
 public class PlaceholderDiagramaAnaliseService : IDiagramaAnaliseClient
 {
-    public async Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(string nomeFisico, string localizacaoUrl, string extensao)
+    public async Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(string nomeFisico, byte[] conteudoArquivo, string extensao)
     {
         await Task.Delay(500);
 

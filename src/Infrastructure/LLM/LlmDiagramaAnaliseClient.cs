@@ -13,7 +13,6 @@ namespace Infrastructure.LLM;
 public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
 {
     private readonly IChatClient _chatClient;
-    private readonly S3ArquivoDownloader _downloader;
     private readonly IAppLogger _logger;
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
@@ -21,16 +20,14 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
         PropertyNameCaseInsensitive = true
     };
 
-    public LlmDiagramaAnaliseClient(IChatClient chatClient, S3ArquivoDownloader downloader, ILoggerFactory loggerFactory)
+    public LlmDiagramaAnaliseClient(IChatClient chatClient, ILoggerFactory loggerFactory)
     {
         _chatClient = chatClient;
-        _downloader = downloader;
         _logger = new LoggerAdapter<LlmDiagramaAnaliseClient>(loggerFactory.CreateLogger<LlmDiagramaAnaliseClient>());
     }
 
-    public async Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(string nomeFisico, string localizacaoUrl, string extensao)
+    public async Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(string nomeFisico, byte[] conteudoArquivo, string extensao)
     {
-        var bytesArquivo = await _downloader.BaixarArquivoAsync(localizacaoUrl);
         var mediaType = ObterMediaType(extensao);
 
         var mensagens = new List<ChatMessage>
@@ -39,7 +36,7 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
             new(ChatRole.User, new List<AIContent>
             {
                 new TextContent(DiagramaAnalisePrompts.UserPrompt),
-                new DataContent(bytesArquivo, mediaType)
+                new DataContent(conteudoArquivo, mediaType)
             })
         };
 
