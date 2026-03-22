@@ -7,7 +7,7 @@ using MassTransit;
 using Microsoft.Extensions.Logging;
 using Shared.Constants;
 
-namespace Infrastructure.Messaging;
+namespace Infrastructure.Messaging.Publishers;
 
 /// <summary>
 /// Implementação do publisher de mensagens de processamento usando MassTransit com Amazon SQS.

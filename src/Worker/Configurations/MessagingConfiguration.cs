@@ -2,6 +2,7 @@ using Application.Contracts.Messaging;
 using Application.Contracts.Messaging.Dtos;
 using Infrastructure.Messaging;
 using Infrastructure.Messaging.Filters;
+using Infrastructure.Messaging.Publishers;
 using MassTransit;
 using System.Text.Json.Serialization;
 
