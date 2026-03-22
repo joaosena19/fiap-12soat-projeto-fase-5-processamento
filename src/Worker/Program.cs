@@ -34,7 +34,8 @@ builder.Services.AddSerilog(Log.Logger, dispose: true);
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddMonitoring();
 builder.Services.AddMessaging(builder.Configuration);
-builder.Services.AddLlmServices();
+builder.Services.AddS3(builder.Configuration);
+builder.Services.AddLlmServices(builder.Configuration);
 
 var host = builder.Build();
 
