@@ -1,14 +1,13 @@
-using Application.Contracts.Gateways;
 using Application.Contracts.LLM;
 using Application.Contracts.Messaging;
 using Application.Contracts.Messaging.Dtos;
-using Application.Contracts.Monitoramento;
 using Application.Extensions;
 using Application.ProcessamentoDiagrama.Dtos;
+using Infrastructure.Database;
 using Infrastructure.Handlers;
 using Infrastructure.Monitoramento;
+using Infrastructure.Repositories;
 using MassTransit;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared.Constants;
 
@@ -19,12 +18,16 @@ namespace Infrastructure.Messaging;
 /// </summary>
 public class UploadDiagramaConcluidoConsumer : IConsumer<UploadDiagramaConcluidoDto>
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly AppDbContext _context;
+    private readonly IDiagramaAnaliseService _llmService;
+    private readonly IProcessamentoDiagramaMessagePublisher _messagePublisher;
     private readonly ILoggerFactory _loggerFactory;
 
-    public UploadDiagramaConcluidoConsumer(IServiceProvider serviceProvider, ILoggerFactory loggerFactory)
+    public UploadDiagramaConcluidoConsumer(AppDbContext context, IDiagramaAnaliseService llmService, IProcessamentoDiagramaMessagePublisher messagePublisher, ILoggerFactory loggerFactory)
     {
-        _serviceProvider = serviceProvider;
+        _context = context;
+        _llmService = llmService;
+        _messagePublisher = messagePublisher;
         _loggerFactory = loggerFactory;
     }
 
@@ -36,10 +39,8 @@ public class UploadDiagramaConcluidoConsumer : IConsumer<UploadDiagramaConcluido
         try
         {
             var handler = new ProcessamentoDiagramaHandler(_loggerFactory);
-            var gateway = _serviceProvider.GetRequiredService<IProcessamentoDiagramaGateway>();
-            var llmService = _serviceProvider.GetRequiredService<IDiagramaAnaliseService>();
-            var messagePublisher = _serviceProvider.GetRequiredService<IProcessamentoDiagramaMessagePublisher>();
-            var metrics = _serviceProvider.GetRequiredService<IMetricsService>();
+            var gateway = new ProcessamentoDiagramaRepository(_context);
+            var metrics = new NewRelicMetricsService();
             var messageId = context.MessageId?.ToString() ?? "desconhecido";
 
             logger.ComConsumoMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, mensagem.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.MessageId, messageId).LogInformation($"Recebida mensagem de upload concluído para processamento. {{{LogNomesPropriedades.MessageId}}}", messageId);
@@ -63,7 +64,7 @@ public class UploadDiagramaConcluidoConsumer : IConsumer<UploadDiagramaConcluido
                 LocalizacaoUrl = mensagem.LocalizacaoUrl
             };
 
-            await handler.ProcessarDiagramaAsync(processarDiagramaDto, gateway, llmService, messagePublisher, metrics);
+            await handler.ProcessarDiagramaAsync(processarDiagramaDto, gateway, _llmService, _messagePublisher, metrics);
         }
         catch (Exception ex)
         {
