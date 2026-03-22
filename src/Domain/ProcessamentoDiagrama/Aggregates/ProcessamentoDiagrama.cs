@@ -53,12 +53,12 @@ public class ProcessamentoDiagrama
         HistoricoTemporal = HistoricoTemporal.MarcarInicioProcessamento();
     }
 
-    public void ConcluirProcessamento(AnaliseResultado analiseResultado, int tentativasRealizadas)
+    public void ConcluirProcessamento(string descricaoAnalise, List<string> componentesIdentificados, List<string> riscosArquiteturais, List<string> recomendacoesBasicas, int tentativasRealizadas)
     {
         if (StatusProcessamento.Valor != StatusProcessamentoEnum.EmProcessamento)
             throw new DomainException("Só é possível concluir processamento quando o status é EmProcessamento");
 
-        AnaliseResultado = analiseResultado;
+        AnaliseResultado = AnaliseResultado.Criar(descricaoAnalise, componentesIdentificados, riscosArquiteturais, recomendacoesBasicas);
         TentativasProcessamento = new TentativasProcessamento(tentativasRealizadas);
         StatusProcessamento = new StatusProcessamento(StatusProcessamentoEnum.Concluido);
         HistoricoTemporal = HistoricoTemporal.MarcarConclusaoProcessamento();

@@ -4,8 +4,6 @@ using Application.Contracts.Messaging;
 using Application.Contracts.Monitoramento;
 using Application.ProcessamentoDiagrama.Dtos;
 using Application.Extensions;
-using Domain.ProcessamentoDiagrama.Entities;
-using Domain.ProcessamentoDiagrama.ValueObjects;
 using Shared.Constants;
 using Shared.Enums;
 using Shared.Exceptions;
@@ -37,13 +35,12 @@ public class ProcessarDiagramaUseCase
 
             if (resultado.Sucesso)
             {
-                var analiseResultado = AnaliseResultado.Criar(
-                    new DescricaoAnalise(resultado.DescricaoAnalise!),
-                    resultado.ComponentesIdentificados.Select(item => new ComponenteIdentificado(item)).ToList(),
-                    resultado.RiscosArquiteturais.Select(item => new RiscoArquitetural(item)).ToList(),
-                    resultado.RecomendacoesBasicas.Select(item => new RecomendacaoBasica(item)).ToList());
-
-                processamento.ConcluirProcessamento(analiseResultado, resultado.TentativasRealizadas);
+                processamento.ConcluirProcessamento(
+                    resultado.DescricaoAnalise!,
+                    resultado.ComponentesIdentificados,
+                    resultado.RiscosArquiteturais,
+                    resultado.RecomendacoesBasicas,
+                    resultado.TentativasRealizadas);
                 await gateway.SalvarAsync(processamento);
                 await messagePublisher.PublicarDiagramaAnalisadoAsync(processamento);
 
