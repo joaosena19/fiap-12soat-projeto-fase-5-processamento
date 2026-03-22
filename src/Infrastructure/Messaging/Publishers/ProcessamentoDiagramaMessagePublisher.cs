@@ -1,7 +1,11 @@
 using Application.Contracts.Messaging;
 using Application.Contracts.Messaging.Dtos;
 using Application.Contracts.Monitoramento;
+using Application.Extensions;
+using Infrastructure.Monitoramento;
 using MassTransit;
+using Microsoft.Extensions.Logging;
+using Shared.Constants;
 
 namespace Infrastructure.Messaging;
 
@@ -12,11 +16,13 @@ public class ProcessamentoDiagramaMessagePublisher : IProcessamentoDiagramaMessa
 {
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly ICorrelationIdAccessor _correlationIdAccessor;
+    private readonly IAppLogger _logger;
 
-    public ProcessamentoDiagramaMessagePublisher(IPublishEndpoint publishEndpoint, ICorrelationIdAccessor correlationIdAccessor)
+    public ProcessamentoDiagramaMessagePublisher(IPublishEndpoint publishEndpoint, ICorrelationIdAccessor correlationIdAccessor, ILoggerFactory loggerFactory)
     {
         _publishEndpoint = publishEndpoint;
         _correlationIdAccessor = correlationIdAccessor;
+        _logger = new LoggerAdapter<ProcessamentoDiagramaMessagePublisher>(loggerFactory.CreateLogger<ProcessamentoDiagramaMessagePublisher>());
     }
 
     public async Task PublicarProcessamentoIniciadoAsync(Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama processamento, string nomeOriginal, string extensao)
@@ -30,6 +36,7 @@ public class ProcessamentoDiagramaMessagePublisher : IProcessamentoDiagramaMessa
             DataInicio = processamento.HistoricoTemporal.DataInicioProcessamento ?? DateTimeOffset.UtcNow
         };
 
+        _logger.ComEnvioMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamento.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.Extensao, extensao).LogInformation($"Publicando evento de processamento iniciado para {{{LogNomesPropriedades.AnaliseDiagramaId}}}", processamento.AnaliseDiagramaId);
         await _publishEndpoint.Publish(mensagem);
     }
 
@@ -46,6 +53,7 @@ public class ProcessamentoDiagramaMessagePublisher : IProcessamentoDiagramaMessa
             DataConclusao = processamento.HistoricoTemporal.DataConclusaoProcessamento ?? DateTimeOffset.UtcNow
         };
 
+        _logger.ComEnvioMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamento.AnaliseDiagramaId).LogInformation($"Publicando evento de processamento analisado para {{{LogNomesPropriedades.AnaliseDiagramaId}}}", processamento.AnaliseDiagramaId);
         await _publishEndpoint.Publish(mensagem);
     }
 
@@ -60,6 +68,7 @@ public class ProcessamentoDiagramaMessagePublisher : IProcessamentoDiagramaMessa
             DataErro = processamento.HistoricoTemporal.DataConclusaoProcessamento ?? DateTimeOffset.UtcNow
         };
 
+        _logger.ComEnvioMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamento.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.Motivo, motivo).LogInformation($"Publicando evento de processamento com erro para {{{LogNomesPropriedades.AnaliseDiagramaId}}}", processamento.AnaliseDiagramaId);
         await _publishEndpoint.Publish(mensagem);
     }
 }

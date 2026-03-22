@@ -1,6 +1,9 @@
 using System.Text.Json;
 using Application.Contracts.LLM;
+using Application.Contracts.Monitoramento;
+using Infrastructure.Monitoramento;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.LLM;
 
@@ -11,16 +14,18 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
 {
     private readonly IChatClient _chatClient;
     private readonly S3ArquivoDownloader _downloader;
+    private readonly IAppLogger _logger;
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
-    public LlmDiagramaAnaliseClient(IChatClient chatClient, S3ArquivoDownloader downloader)
+    public LlmDiagramaAnaliseClient(IChatClient chatClient, S3ArquivoDownloader downloader, ILoggerFactory loggerFactory)
     {
         _chatClient = chatClient;
         _downloader = downloader;
+        _logger = new LoggerAdapter<LlmDiagramaAnaliseClient>(loggerFactory.CreateLogger<LlmDiagramaAnaliseClient>());
     }
 
     public async Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(string nomeFisico, string localizacaoUrl, string extensao)
@@ -46,11 +51,21 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
 
         var resposta = await _chatClient.GetResponseAsync(mensagens, opcoes);
 
-        var textoResposta = resposta.Text
-            ?? throw new InvalidOperationException("A LLM retornou uma resposta nula.");
+        var textoResposta = resposta.Text;
 
-        var analise = JsonSerializer.Deserialize<LlmAnaliseResponse>(textoResposta, _jsonOptions)
-            ?? throw new InvalidOperationException("Falha ao desserializar a resposta da LLM.");
+        if (textoResposta == null)
+        {
+            _logger.LogWarning("A LLM retornou uma resposta nula");
+            throw new InvalidOperationException("A LLM retornou uma resposta nula.");
+        }
+
+        var analise = JsonSerializer.Deserialize<LlmAnaliseResponse>(textoResposta, _jsonOptions);
+
+        if (analise == null)
+        {
+            _logger.LogWarning("Falha ao desserializar a resposta da LLM");
+            throw new InvalidOperationException("Falha ao desserializar a resposta da LLM.");
+        }
 
         return new ResultadoAnaliseDto
         {

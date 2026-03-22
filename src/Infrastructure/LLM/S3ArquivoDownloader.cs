@@ -1,4 +1,8 @@
 using Amazon.S3;
+using Application.Contracts.Monitoramento;
+using Infrastructure.Monitoramento;
+using Microsoft.Extensions.Logging;
+using Shared.Constants;
 
 namespace Infrastructure.LLM;
 
@@ -8,21 +12,31 @@ namespace Infrastructure.LLM;
 public class S3ArquivoDownloader
 {
     private readonly IAmazonS3 _s3Client;
+    private readonly IAppLogger _logger;
 
-    public S3ArquivoDownloader(IAmazonS3 s3Client)
+    public S3ArquivoDownloader(IAmazonS3 s3Client, ILoggerFactory loggerFactory)
     {
         _s3Client = s3Client;
+        _logger = new LoggerAdapter<S3ArquivoDownloader>(loggerFactory.CreateLogger<S3ArquivoDownloader>());
     }
 
     public async Task<byte[]> BaixarArquivoAsync(string localizacaoUrl)
     {
         var (bucket, key) = ParseS3Url(localizacaoUrl);
 
-        var response = await _s3Client.GetObjectAsync(bucket, key);
+        try
+        {
+            var response = await _s3Client.GetObjectAsync(bucket, key);
 
-        using var memoryStream = new MemoryStream();
-        await response.ResponseStream.CopyToAsync(memoryStream);
-        return memoryStream.ToArray();
+            using var memoryStream = new MemoryStream();
+            await response.ResponseStream.CopyToAsync(memoryStream);
+            return memoryStream.ToArray();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, $"Falha ao baixar arquivo do S3. {{{LogNomesPropriedades.Bucket}}}/{{{LogNomesPropriedades.Key}}}", bucket, key);
+            throw;
+        }
     }
 
     private static (string bucket, string key) ParseS3Url(string url)

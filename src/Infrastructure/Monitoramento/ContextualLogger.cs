@@ -54,6 +54,11 @@ public class ContextualLogger : IAppLogger
         LogWithContext(messageTemplate, () => _logger.LogWarning(messageTemplate, args));
     }
 
+    public void LogWarning(Exception ex, string messageTemplate, params object[] args)
+    {
+        LogWithContext(messageTemplate, () => _logger.LogWarning(ex, messageTemplate, args));
+    }
+
     public void LogError(string messageTemplate, params object[] args)
     {
         LogWithContext(messageTemplate, () => _logger.LogError(messageTemplate, args));

@@ -31,7 +31,7 @@ public class ProcessarDiagramaUseCase
             metrics.RegistrarProcessamentoIniciado(analiseDiagramaId);
 
             var inicioProcessamento = DateTimeOffset.UtcNow;
-            var resultado = await llmService.AnalisarDiagramaAsync(processarDiagramaDto.NomeFisico, processarDiagramaDto.LocalizacaoUrl, processarDiagramaDto.Extensao);
+            var resultado = await llmService.AnalisarDiagramaAsync(analiseDiagramaId, processarDiagramaDto.NomeFisico, processarDiagramaDto.LocalizacaoUrl, processarDiagramaDto.Extensao);
 
             if (resultado.Sucesso)
             {
@@ -56,19 +56,19 @@ public class ProcessarDiagramaUseCase
                 await gateway.SalvarAsync(processamento);
                 await messagePublisher.PublicarProcessamentoErroAsync(processamento, motivo);
 
-                metrics.RegistrarProcessamentoFalha(analiseDiagramaId, motivo);
+                metrics.RegistrarProcessamentoFalha(analiseDiagramaId, motivo, resultado.TentativasRealizadas);
 
-                logger.ComUseCase(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogWarning($"Falha no processamento {{{LogNomesPropriedades.AnaliseDiagramaId}}} após esgotar as tentativas de análise. {LogNomesPropriedades.Motivo}: {{{LogNomesPropriedades.Motivo}}}", analiseDiagramaId, motivo);
+                logger.ComUseCase(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).ComPropriedade(LogNomesPropriedades.Tentativas, resultado.TentativasRealizadas).LogError($"Falha no processamento {{{LogNomesPropriedades.AnaliseDiagramaId}}} após esgotar as tentativas de análise. {LogNomesPropriedades.Motivo}: {{{LogNomesPropriedades.Motivo}}}. {LogNomesPropriedades.Tentativas}: {{{LogNomesPropriedades.Tentativas}}}", analiseDiagramaId, motivo, resultado.TentativasRealizadas);
             }
         }
         catch (DomainException ex)
         {
-            logger.ComUseCase(this).ComDomainErrorType(ex).LogError(ex, ex.LogTemplate, ex.LogArgs);
+            logger.ComUseCase(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).ComDomainErrorType(ex).LogError(ex, ex.LogTemplate, ex.LogArgs);
             throw;
         }
         catch (Exception ex)
         {
-            logger.ComUseCase(this).LogError(ex, $"Erro interno ao processar diagrama {{{LogNomesPropriedades.AnaliseDiagramaId}}}.", analiseDiagramaId);
+            logger.ComUseCase(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogError(ex, $"Erro interno ao processar diagrama {{{LogNomesPropriedades.AnaliseDiagramaId}}}.", analiseDiagramaId);
             throw;
         }
     }

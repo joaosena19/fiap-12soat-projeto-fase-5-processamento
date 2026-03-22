@@ -32,6 +32,12 @@ public class LoggerAdapter<T> : IAppLogger
             _logger.LogWarning(messageTemplate, args);
     }
 
+    public void LogWarning(Exception ex, string messageTemplate, params object[] args)
+    {
+        using (LogContext.PushProperty(MessageTemplateProperty, messageTemplate))
+            _logger.LogWarning(ex, messageTemplate, args);
+    }
+
     public void LogError(string messageTemplate, params object[] args)
     {
         using (LogContext.PushProperty(MessageTemplateProperty, messageTemplate))

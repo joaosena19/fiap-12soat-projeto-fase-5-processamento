@@ -1,5 +1,6 @@
 using Application.Contracts.Monitoramento;
 using Shared.Constants;
+using Infrastructure.Monitoramento.Correlation;
 using NR = NewRelic.Api.Agent;
 
 namespace Infrastructure.Monitoramento;
@@ -16,6 +17,9 @@ public class NewRelicMetricsService : IMetricsService
             { LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId },
             { LogNomesPropriedades.Timestamp, DateTimeOffset.UtcNow }
         };
+
+        AdicionarCorrelationId(atributos);
+
         NR.NewRelic.RecordCustomEvent("ProcessamentoDiagramaIniciado", atributos);
     }
 
@@ -27,17 +31,31 @@ public class NewRelicMetricsService : IMetricsService
             { LogNomesPropriedades.DuracaoMs, duracaoMs },
             { LogNomesPropriedades.Timestamp, DateTimeOffset.UtcNow }
         };
+
+        AdicionarCorrelationId(atributos);
+
         NR.NewRelic.RecordCustomEvent("ProcessamentoDiagramaConcluido", atributos);
     }
 
-    public void RegistrarProcessamentoFalha(Guid analiseDiagramaId, string motivo)
+    public void RegistrarProcessamentoFalha(Guid analiseDiagramaId, string motivo, int tentativasRealizadas)
     {
         var atributos = new Dictionary<string, object>
         {
             { LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId },
             { LogNomesPropriedades.Motivo, motivo },
+            { LogNomesPropriedades.Tentativas, tentativasRealizadas },
             { LogNomesPropriedades.Timestamp, DateTimeOffset.UtcNow }
         };
+
+        AdicionarCorrelationId(atributos);
+
         NR.NewRelic.RecordCustomEvent("ProcessamentoDiagramaFalha", atributos);
+    }
+
+    private static void AdicionarCorrelationId(Dictionary<string, object> atributos)
+    {
+        var correlationId = CorrelationContext.Current;
+        if (!string.IsNullOrWhiteSpace(correlationId))
+            atributos[LogNomesPropriedades.CorrelationId] = correlationId;
     }
 }
