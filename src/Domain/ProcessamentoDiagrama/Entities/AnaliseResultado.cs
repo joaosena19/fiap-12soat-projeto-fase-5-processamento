@@ -21,8 +21,12 @@ public class AnaliseResultado
         RecomendacoesBasicas = recomendacoesBasicas;
     }
 
-    public static AnaliseResultado Criar(DescricaoAnalise descricaoAnalise, List<ComponenteIdentificado> componentesIdentificados, List<RiscoArquitetural> riscosArquiteturais, List<RecomendacaoBasica> recomendacoesBasicas)
+    public static AnaliseResultado Criar(string descricaoAnalise, List<string> componentesIdentificados, List<string> riscosArquiteturais, List<string> recomendacoesBasicas)
     {
-        return new AnaliseResultado(descricaoAnalise, componentesIdentificados, riscosArquiteturais, recomendacoesBasicas);
+        return new AnaliseResultado(
+            new DescricaoAnalise(descricaoAnalise),
+            componentesIdentificados.Select(item => new ComponenteIdentificado(item)).ToList(),
+            riscosArquiteturais.Select(item => new RiscoArquitetural(item)).ToList(),
+            recomendacoesBasicas.Select(item => new RecomendacaoBasica(item)).ToList());
     }
 }
