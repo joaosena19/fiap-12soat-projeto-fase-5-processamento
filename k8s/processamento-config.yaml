@@ -9,7 +9,6 @@ data:
   DatabaseConnection__User: "__DB_MASTER_USERNAME__"
   
   ASPNETCORE_ENVIRONMENT: "Development"
-  ASPNETCORE_URLS: "http://+:8080"
   
   ApiCredentials__ClientId: "admin"
 

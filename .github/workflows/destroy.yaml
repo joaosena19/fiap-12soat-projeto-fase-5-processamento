@@ -11,7 +11,6 @@ env:
   AWS_REGION: us-east-1
   SERVICE_NAME: processamento
   K8S_DEPLOYMENT_NAME: processamento-service
-  K8S_SERVICE_NAME: processamento-service
   K8S_SECRET_NAME: processamento-secret
   K8S_CONFIG_NAME: processamento-config
 
@@ -59,10 +58,6 @@ jobs:
         run: kubectl delete -f k8s/${{ env.SERVICE_NAME }}-deployment.yaml --ignore-not-found=true
         continue-on-error: true
 
-      - name: Remover Service
-        run: kubectl delete -f k8s/${{ env.SERVICE_NAME }}-service.yaml --ignore-not-found=true
-        continue-on-error: true
-
       - name: Remover ConfigMap e Secret
         run: |
           kubectl delete configmap ${{ env.K8S_CONFIG_NAME }} --ignore-not-found=true
@@ -86,12 +81,6 @@ jobs:
             echo "⚠️ Deployment ainda existe"
           else
             echo "✅ Deployment removido com sucesso"
-          fi
-          
-          if kubectl get service ${{ env.K8S_SERVICE_NAME }} 2>/dev/null; then
-            echo "⚠️ Service ainda existe"
-          else
-            echo "✅ Service removido com sucesso"
           fi
 
   destroy-database:
