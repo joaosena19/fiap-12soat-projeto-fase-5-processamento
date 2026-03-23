@@ -22,7 +22,7 @@ public class ProcessamentoDiagramaMessagePublisher : IProcessamentoDiagramaMessa
     {
         _publishEndpoint = publishEndpoint;
         _correlationIdAccessor = correlationIdAccessor;
-        _logger = new LoggerAdapter<ProcessamentoDiagramaMessagePublisher>(loggerFactory.CreateLogger<ProcessamentoDiagramaMessagePublisher>());
+        _logger = loggerFactory.CriarAppLogger<ProcessamentoDiagramaMessagePublisher>();
     }
 
     public async Task PublicarProcessamentoIniciadoAsync(Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama processamento, string nomeOriginal, string extensao)

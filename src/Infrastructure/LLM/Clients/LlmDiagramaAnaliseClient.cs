@@ -12,10 +12,17 @@ namespace Infrastructure.LLM;
 /// </summary>
 public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
 {
+    private const string MediaTypePng = "image/png";
+    private const string MediaTypeJpeg = "image/jpeg";
+    private const string MediaTypeGif = "image/gif";
+    private const string MediaTypeWebp = "image/webp";
+    private const string MediaTypePdf = "application/pdf";
+    private const string MediaTypePadrao = "application/octet-stream";
+
     private readonly IChatClient _chatClient;
     private readonly IAppLogger _logger;
 
-    private static readonly JsonSerializerOptions _jsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
@@ -23,7 +30,7 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
     public LlmDiagramaAnaliseClient(IChatClient chatClient, ILoggerFactory loggerFactory)
     {
         _chatClient = chatClient;
-        _logger = new LoggerAdapter<LlmDiagramaAnaliseClient>(loggerFactory.CreateLogger<LlmDiagramaAnaliseClient>());
+        _logger = loggerFactory.CriarAppLogger<LlmDiagramaAnaliseClient>();
     }
 
     public async Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(string nomeFisico, byte[] conteudoArquivo, string extensao)
@@ -47,7 +54,6 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
         };
 
         var resposta = await _chatClient.GetResponseAsync(mensagens, opcoes);
-
         var textoResposta = resposta.Text;
 
         if (textoResposta == null)
@@ -56,7 +62,7 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
             throw new InvalidOperationException("A LLM retornou uma resposta nula.");
         }
 
-        var analise = JsonSerializer.Deserialize<LlmAnaliseResponse>(textoResposta, _jsonOptions);
+        var analise = JsonSerializer.Deserialize<LlmAnaliseResponse>(textoResposta, JsonOptions);
 
         if (analise == null)
         {
@@ -77,11 +83,11 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
 
     private static string ObterMediaType(string extensao) => extensao.ToLowerInvariant() switch
     {
-        ".png" => "image/png",
-        ".jpg" or ".jpeg" => "image/jpeg",
-        ".gif" => "image/gif",
-        ".webp" => "image/webp",
-        ".pdf" => "application/pdf",
-        _ => "application/octet-stream"
+        ".png" => MediaTypePng,
+        ".jpg" or ".jpeg" => MediaTypeJpeg,
+        ".gif" => MediaTypeGif,
+        ".webp" => MediaTypeWebp,
+        ".pdf" => MediaTypePdf,
+        _ => MediaTypePadrao
     };
 }

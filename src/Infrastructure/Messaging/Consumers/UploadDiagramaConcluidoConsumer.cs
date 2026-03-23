@@ -3,7 +3,6 @@ using Application.Contracts.Messaging;
 using Application.Contracts.Messaging.Dtos;
 using Application.Extensions;
 using Application.ProcessamentoDiagrama.Dtos;
-using Domain.ProcessamentoDiagrama.Enums;
 using Infrastructure.Database;
 using Infrastructure.Handlers;
 using Infrastructure.Monitoramento;
@@ -12,7 +11,7 @@ using MassTransit;
 using Microsoft.Extensions.Logging;
 using Shared.Constants;
 
-namespace Infrastructure.Messaging;
+namespace Infrastructure.Messaging.Consumers;
 
 /// <summary>
 /// Consumer MassTransit que consome mensagens de upload concluído e inicia o processamento.
@@ -35,38 +34,16 @@ public class UploadDiagramaConcluidoConsumer : IConsumer<UploadDiagramaConcluido
     public async Task Consume(ConsumeContext<UploadDiagramaConcluidoDto> context)
     {
         var mensagem = context.Message;
-        var logger = new LoggerAdapter<UploadDiagramaConcluidoConsumer>(_loggerFactory.CreateLogger<UploadDiagramaConcluidoConsumer>());
+        var logger = _loggerFactory.CriarAppLogger<UploadDiagramaConcluidoConsumer>();
 
         try
         {
             var handler = new ProcessamentoDiagramaHandler(_loggerFactory);
             var gateway = new ProcessamentoDiagramaRepository(_context);
             var metrics = new NewRelicMetricsService();
-            var messageId = context.MessageId?.ToString() ?? "desconhecido";
+            var messageId = context.MessageId?.ToString() ?? LogNomesValores.Desconhecido;
 
             logger.ComConsumoMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, mensagem.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.MessageId, messageId).LogInformation($"Recebida mensagem de upload concluído para processamento. {{{LogNomesPropriedades.MessageId}}}", messageId);
-
-            var processamentoExistente = await gateway.ObterPorAnaliseDiagramaIdAsync(mensagem.AnaliseDiagramaId);
-
-            if (processamentoExistente?.StatusProcessamento.Valor == StatusProcessamentoEnum.EmProcessamento)
-            {
-                logger.ComConsumoMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, mensagem.AnaliseDiagramaId).LogWarning("Processamento já está em andamento para o AnaliseDiagramaId, ignorando mensagem duplicada");
-                return;
-            }
-
-            if (processamentoExistente?.StatusProcessamento.Valor == StatusProcessamentoEnum.Concluido)
-            {
-                logger.ComConsumoMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, mensagem.AnaliseDiagramaId).LogWarning("Processamento já foi concluído para o AnaliseDiagramaId, ignorando mensagem duplicada");
-                return;
-            }
-
-            if (processamentoExistente == null)
-            {
-                var processamento = Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama.Criar(mensagem.AnaliseDiagramaId);
-
-                await gateway.SalvarAsync(processamento);
-                logger.ComConsumoMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, mensagem.AnaliseDiagramaId).LogDebug("Registro inicial de processamento criado.");
-            }
 
             var processarDiagramaDto = new ProcessarDiagramaDto
             {
@@ -77,7 +54,7 @@ public class UploadDiagramaConcluidoConsumer : IConsumer<UploadDiagramaConcluido
                 LocalizacaoUrl = mensagem.LocalizacaoUrl
             };
 
-            await handler.ProcessarDiagramaAsync(processarDiagramaDto, gateway, _llmService, _messagePublisher, metrics);
+            await handler.IniciarProcessamentoAsync(processarDiagramaDto, gateway, _llmService, _messagePublisher, metrics, logger);
         }
         catch (Exception ex)
         {

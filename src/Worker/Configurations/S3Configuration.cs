@@ -1,6 +1,6 @@
 using Amazon;
 using Amazon.S3;
-using Infrastructure.LLM;
+using Infrastructure.Armazenamento;
 
 namespace Worker.Configurations;
 
@@ -11,7 +11,7 @@ public static class S3Configuration
 {
     public static IServiceCollection AddS3(this IServiceCollection services, IConfiguration configuration)
     {
-        var region = configuration["AWS:Region"] ?? "us-east-1";
+        var region = configuration["AWS:Region"] ?? throw new InvalidOperationException("Configuração AWS:Region não encontrada");
 
         services.AddSingleton<IAmazonS3>(_ => new AmazonS3Client(RegionEndpoint.GetBySystemName(region)));
         services.AddScoped<IArquivoDiagramaDownloader, S3ArquivoDownloader>();

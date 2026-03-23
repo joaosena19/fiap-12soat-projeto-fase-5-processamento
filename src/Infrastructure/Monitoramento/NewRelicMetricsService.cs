@@ -10,46 +10,42 @@ namespace Infrastructure.Monitoramento;
 /// </summary>
 public class NewRelicMetricsService : IMetricsService
 {
+    private const string EventoProcessamentoIniciado = "ProcessamentoDiagramaIniciado";
+    private const string EventoProcessamentoConcluido = "ProcessamentoDiagramaConcluido";
+    private const string EventoProcessamentoFalha = "ProcessamentoDiagramaFalha";
+
     public void RegistrarProcessamentoIniciado(Guid analiseDiagramaId)
     {
-        var atributos = new Dictionary<string, object>
+        RegistrarEvento(EventoProcessamentoIniciado, new Dictionary<string, object>
         {
-            { LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId },
-            { LogNomesPropriedades.Timestamp, DateTimeOffset.UtcNow }
-        };
-
-        AdicionarCorrelationId(atributos);
-
-        NR.NewRelic.RecordCustomEvent("ProcessamentoDiagramaIniciado", atributos);
+            { LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId }
+        });
     }
 
     public void RegistrarProcessamentoConcluido(Guid analiseDiagramaId, long duracaoMs)
     {
-        var atributos = new Dictionary<string, object>
+        RegistrarEvento(EventoProcessamentoConcluido, new Dictionary<string, object>
         {
             { LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId },
-            { LogNomesPropriedades.DuracaoMs, duracaoMs },
-            { LogNomesPropriedades.Timestamp, DateTimeOffset.UtcNow }
-        };
-
-        AdicionarCorrelationId(atributos);
-
-        NR.NewRelic.RecordCustomEvent("ProcessamentoDiagramaConcluido", atributos);
+            { LogNomesPropriedades.DuracaoMs, duracaoMs }
+        });
     }
 
     public void RegistrarProcessamentoFalha(Guid analiseDiagramaId, string motivo, int tentativasRealizadas)
     {
-        var atributos = new Dictionary<string, object>
+        RegistrarEvento(EventoProcessamentoFalha, new Dictionary<string, object>
         {
             { LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId },
             { LogNomesPropriedades.Motivo, motivo },
-            { LogNomesPropriedades.Tentativas, tentativasRealizadas },
-            { LogNomesPropriedades.Timestamp, DateTimeOffset.UtcNow }
-        };
+            { LogNomesPropriedades.Tentativas, tentativasRealizadas }
+        });
+    }
 
+    private static void RegistrarEvento(string nomeEvento, Dictionary<string, object> atributos)
+    {
+        atributos[LogNomesPropriedades.Timestamp] = DateTimeOffset.UtcNow;
         AdicionarCorrelationId(atributos);
-
-        NR.NewRelic.RecordCustomEvent("ProcessamentoDiagramaFalha", atributos);
+        NR.NewRelic.RecordCustomEvent(nomeEvento, atributos);
     }
 
     private static void AdicionarCorrelationId(Dictionary<string, object> atributos)

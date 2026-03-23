@@ -1,4 +1,4 @@
-namespace Infrastructure.LLM;
+namespace Infrastructure.Armazenamento;
 
 public interface IArquivoDiagramaDownloader
 {

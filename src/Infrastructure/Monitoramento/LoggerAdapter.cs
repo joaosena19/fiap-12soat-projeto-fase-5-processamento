@@ -53,6 +53,6 @@ public class LoggerAdapter<T> : IAppLogger
     public IAppLogger ComPropriedade(string key, object? value)
     {
         var context = new Dictionary<string, object?> { [key] = value };
-        return new ContextualLogger(_logger, context);
+        return new ContextualLogger(this, context);
     }
 }

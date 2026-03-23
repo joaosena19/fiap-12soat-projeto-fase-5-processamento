@@ -9,23 +9,14 @@ public static class LlmConfiguration
 {
     public static IServiceCollection AddLlmServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var provider = configuration["LLM:Provider"] ?? "placeholder";
+        var apiKey = configuration["LLM:ApiKey"]
+            ?? throw new InvalidOperationException("LLM:ApiKey não configurado.");
+        var model = configuration["LLM:Model"]
+            ?? throw new InvalidOperationException("LLM:Model não configurado.");
 
-        if (provider.Equals("placeholder", StringComparison.OrdinalIgnoreCase))
-        {
-            services.AddScoped<IDiagramaAnaliseClient, PlaceholderDiagramaAnaliseService>();
-        }
-        else
-        {
-            var apiKey = configuration["LLM:ApiKey"]
-                ?? throw new InvalidOperationException("LLM:ApiKey não configurado.");
-            var model = configuration["LLM:Model"]
-                ?? throw new InvalidOperationException("LLM:Model não configurado.");
+        services.AddSingleton<IChatClient>(_ => new GenerativeAIChatClient(apiKey, model));
 
-            services.AddSingleton<IChatClient>(_ => new GenerativeAIChatClient(apiKey, model));
-
-            services.AddScoped<IDiagramaAnaliseClient, LlmDiagramaAnaliseClient>();
-        }
+        services.AddScoped<IDiagramaAnaliseClient, LlmDiagramaAnaliseClient>();
 
         services.AddScoped<IDiagramaAnaliseService, DiagramaAnaliseService>();
 

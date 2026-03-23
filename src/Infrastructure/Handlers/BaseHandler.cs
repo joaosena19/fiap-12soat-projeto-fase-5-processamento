@@ -18,7 +18,6 @@ public abstract class BaseHandler
     /// </summary>
     protected IAppLogger CriarLoggerPara<TUseCase>()
     {
-        var aspNetLogger = _loggerFactory.CreateLogger<TUseCase>();
-        return new LoggerAdapter<TUseCase>(aspNetLogger);
+        return _loggerFactory.CriarAppLogger<TUseCase>();
     }
 }

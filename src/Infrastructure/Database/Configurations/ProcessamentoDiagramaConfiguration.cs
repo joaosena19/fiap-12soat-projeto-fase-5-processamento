@@ -35,9 +35,9 @@ public class ProcessamentoDiagramaConfiguration : IEntityTypeConfiguration<Proce
 
         builder.OwnsOne(p => p.HistoricoTemporal, historico =>
         {
-            historico.Property<DateTimeOffset>("_dataCriacao").HasColumnName("data_criacao").IsRequired();
-            historico.Property<DateTimeOffset?>("_dataInicioProcessamento").HasColumnName("data_inicio_processamento");
-            historico.Property<DateTimeOffset?>("_dataConclusaoProcessamento").HasColumnName("data_conclusao_processamento");
+            historico.Property(h => h.DataCriacao).HasColumnName("data_criacao").IsRequired();
+            historico.Property(h => h.DataInicioProcessamento).HasColumnName("data_inicio_processamento");
+            historico.Property(h => h.DataConclusaoProcessamento).HasColumnName("data_conclusao_processamento");
         });
 
         builder.OwnsOne(p => p.AnaliseResultado, analiseResultado =>
