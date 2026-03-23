@@ -3,6 +3,7 @@ using Application.Contracts.Messaging;
 using Application.Contracts.Messaging.Dtos;
 using Application.Extensions;
 using Application.ProcessamentoDiagrama.Dtos;
+using Domain.ProcessamentoDiagrama.Enums;
 using Infrastructure.Database;
 using Infrastructure.Handlers;
 using Infrastructure.Monitoramento;
@@ -46,6 +47,18 @@ public class UploadDiagramaConcluidoConsumer : IConsumer<UploadDiagramaConcluido
             logger.ComConsumoMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, mensagem.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.MessageId, messageId).LogInformation($"Recebida mensagem de upload concluído para processamento. {{{LogNomesPropriedades.MessageId}}}", messageId);
 
             var processamentoExistente = await gateway.ObterPorAnaliseDiagramaIdAsync(mensagem.AnaliseDiagramaId);
+
+            if (processamentoExistente?.StatusProcessamento.Valor == StatusProcessamentoEnum.EmProcessamento)
+            {
+                logger.ComConsumoMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, mensagem.AnaliseDiagramaId).LogWarning("Processamento já está em andamento para o AnaliseDiagramaId, ignorando mensagem duplicada");
+                return;
+            }
+
+            if (processamentoExistente?.StatusProcessamento.Valor == StatusProcessamentoEnum.Concluido)
+            {
+                logger.ComConsumoMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, mensagem.AnaliseDiagramaId).LogWarning("Processamento já foi concluído para o AnaliseDiagramaId, ignorando mensagem duplicada");
+                return;
+            }
 
             if (processamentoExistente == null)
             {
