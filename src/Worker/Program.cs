@@ -3,7 +3,7 @@ using Worker.Configurations;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-SerilogConfiguration.ConfigurarSerilog(builder.Configuration, "ProcessamentoService");
+SerilogConfiguration.ConfigurarSerilog(builder.Configuration);
 builder.Services.AddSerilog(Log.Logger, dispose: true);
 
 builder.Services.AddDatabase(builder.Configuration);
