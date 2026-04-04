@@ -36,7 +36,6 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
     public async Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(string nomeFisico, byte[] conteudoArquivo, string extensao)
     {
         var mediaType = ObterMediaType(extensao);
-
         var mensagens = new List<ChatMessage>
         {
             new(ChatRole.System, DiagramaAnalisePrompts.SystemPrompt),
@@ -53,22 +52,58 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
             ResponseFormat = ChatResponseFormat.ForJsonSchema<LlmAnaliseResponse>()
         };
 
-        var resposta = await _chatClient.GetResponseAsync(mensagens, opcoes);
-        var textoResposta = resposta.Text;
-
-        if (textoResposta == null)
+        try
         {
-            _logger.LogWarning("A LLM retornou uma resposta nula");
-            throw new InvalidOperationException("A LLM retornou uma resposta nula.");
+            var resposta = await _chatClient.GetResponseAsync(mensagens, opcoes);
+            var textoResposta = resposta.Text;
+
+            if (textoResposta == null)
+            {
+                _logger.LogWarning("A LLM retornou uma resposta nula");
+                throw new LlmTransientException("A LLM retornou uma resposta nula.");
+            }
+
+            var analise = JsonSerializer.Deserialize<LlmAnaliseResponse>(textoResposta, JsonOptions);
+
+            if (analise == null)
+            {
+                _logger.LogWarning("Falha ao desserializar a resposta da LLM");
+                throw new LlmTransientException("Falha ao desserializar a resposta da LLM.");
+            }
+
+            return MapearResultadoAnalise(analise);
+        }
+        catch (LlmPermanentException)
+        {
+            throw;
+        }
+        catch (LlmTransientException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LlmTransientException("Falha transitória ao consultar a LLM.", ex);
+        }
+    }
+
+    private static ResultadoAnaliseDto MapearResultadoAnalise(LlmAnaliseResponse analise)
+    {
+        if (!analise.EhDiagramaArquitetural)
+        {
+            if (string.IsNullOrWhiteSpace(analise.MotivoInvalidez))
+                throw new LlmPermanentException("A LLM retornou EhDiagramaArquitetural=false sem MotivoInvalidez.");
+
+            return new ResultadoAnaliseDto
+            {
+                Sucesso = false,
+                MotivoErro = analise.MotivoInvalidez,
+                TentativasRealizadas = 1
+            };
         }
 
-        var analise = JsonSerializer.Deserialize<LlmAnaliseResponse>(textoResposta, JsonOptions);
-
-        if (analise == null)
-        {
-            _logger.LogWarning("Falha ao desserializar a resposta da LLM");
-            throw new InvalidOperationException("Falha ao desserializar a resposta da LLM.");
-        }
+        if (string.IsNullOrWhiteSpace(analise.DescricaoAnalise))
+            throw new LlmPermanentException("A LLM retornou EhDiagramaArquitetural=true sem DescricaoAnalise.");
 
         return new ResultadoAnaliseDto
         {

@@ -58,7 +58,7 @@ public class ProcessarDiagramaUseCase
 
                 metrics.RegistrarProcessamentoFalha(analiseDiagramaId, motivo, resultado.TentativasRealizadas);
 
-                logger.ComUseCase(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).ComPropriedade(LogNomesPropriedades.Tentativas, resultado.TentativasRealizadas).LogError($"Falha no processamento {{{LogNomesPropriedades.AnaliseDiagramaId}}} após esgotar as tentativas de análise. {LogNomesPropriedades.Motivo}: {{{LogNomesPropriedades.Motivo}}}. {LogNomesPropriedades.Tentativas}: {{{LogNomesPropriedades.Tentativas}}}", analiseDiagramaId, motivo, resultado.TentativasRealizadas);
+                logger.ComUseCase(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).ComPropriedade(LogNomesPropriedades.Tentativas, resultado.TentativasRealizadas).LogError($"Processamento finalizado com falha para {{{LogNomesPropriedades.AnaliseDiagramaId}}}. {LogNomesPropriedades.Motivo}: {{{LogNomesPropriedades.Motivo}}}. {LogNomesPropriedades.Tentativas}: {{{LogNomesPropriedades.Tentativas}}}", analiseDiagramaId, motivo, resultado.TentativasRealizadas);
             }
         }
         catch (DomainException ex)

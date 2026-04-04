@@ -16,8 +16,8 @@ internal static class ResilienciaAnaliseDiagramaPipelineFactory
                 Delay = TimeSpan.FromSeconds(options.DelaySegundos),
                 UseJitter = true,
                 ShouldHandle = new PredicateBuilder<ResultadoAnaliseDto>()
-                    .Handle<Exception>()
-                    .HandleResult(resultado => resultado == null || !resultado.Sucesso)
+                    .Handle<LlmTransientException>()
+                    .HandleResult(resultado => resultado == null)
             })
             .Build();
     }
