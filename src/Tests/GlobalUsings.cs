@@ -1,0 +1,17 @@
+global using Xunit;
+global using Shouldly;
+global using Moq;
+global using Microsoft.Extensions.Logging;
+global using Shared.Exceptions;
+global using Shared.Enums;
+global using Domain.ProcessamentoDiagrama.ValueObjects;
+global using Domain.ProcessamentoDiagrama.Enums;
+global using Application.Contracts.Gateways;
+global using Application.Contracts.LLM;
+global using Application.Contracts.Messaging;
+global using Application.Contracts.Monitoramento;
+global using Application.ProcessamentoDiagrama.Dtos;
+global using Tests.Helpers.Builders;
+global using Tests.Helpers.Extensions;
+global using Tests.Helpers.MockExtensions;
+global using ProcessamentoDiagramaAggregate = Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama;

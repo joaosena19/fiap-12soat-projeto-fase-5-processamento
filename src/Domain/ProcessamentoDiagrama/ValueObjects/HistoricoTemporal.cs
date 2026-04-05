@@ -33,7 +33,7 @@ public record HistoricoTemporal
 
     public static HistoricoTemporal Reidratar(DateTimeOffset dataCriacao, DateTimeOffset? dataInicioProcessamento, DateTimeOffset? dataConclusaoProcessamento) => new(dataCriacao, dataInicioProcessamento, dataConclusaoProcessamento);
 
-    public HistoricoTemporal MarcarInicioProcessamento(DateTimeOffset? data = null) => new(DataCriacao, data ?? DateTimeOffset.UtcNow, DataConclusaoProcessamento);
+    public HistoricoTemporal MarcarInicioProcessamento(DateTimeOffset? data = null) => new(DataCriacao, data ?? DateTimeOffset.UtcNow, null);
 
     public HistoricoTemporal MarcarConclusaoProcessamento(DateTimeOffset? data = null) => new(DataCriacao, DataInicioProcessamento, data ?? DateTimeOffset.UtcNow);
 }
