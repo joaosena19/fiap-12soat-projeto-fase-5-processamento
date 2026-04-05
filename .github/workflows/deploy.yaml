@@ -229,10 +229,6 @@ jobs:
         run: |
           sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.publish-docker-image.outputs.version_tag }}|g" k8s/${{ env.SERVICE_NAME }}-deployment.yaml
 
-      - name: Aplicar metrics server
-        run: kubectl apply -f k8s/metrics-server.yaml
-        continue-on-error: true
-
       - name: Aplicar manifestos K8s
         run: |
           kubectl apply -f k8s/${{ env.SERVICE_NAME }}-deployment.yaml

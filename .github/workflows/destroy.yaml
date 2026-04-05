@@ -64,10 +64,6 @@ jobs:
           kubectl delete secret ${{ env.K8S_SECRET_NAME }} --ignore-not-found=true
         continue-on-error: true
 
-      - name: Remover metrics server
-        run: kubectl delete -f k8s/metrics-server.yaml --ignore-not-found=true
-        continue-on-error: true
-
       - name: Aguardar finalização
         run: |
           echo "Aguardando finalização da remoção dos pods..."

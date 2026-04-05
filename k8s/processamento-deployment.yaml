@@ -21,6 +21,14 @@ spec:
               name: processamento-config
           - secretRef:
               name: processamento-secret
+        livenessProbe:
+          exec:
+            command:
+              - pidof
+              - dotnet
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          failureThreshold: 3
         resources:
           requests:
             cpu: "50m"

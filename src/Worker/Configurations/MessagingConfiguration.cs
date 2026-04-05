@@ -35,13 +35,14 @@ public static class MessagingConfiguration
                 });
 
                 var topicoUploadConcluido = configuration["Mensageria:Topicos:UploadDiagramaConcluido"]!;
+                var filaUploadConcluido = configuration["Mensageria:Filas:UploadDiagramaConcluido"] ?? topicoUploadConcluido;
 
                 cfg.Message<UploadDiagramaConcluidoDto>(m => m.SetEntityName(topicoUploadConcluido));
                 cfg.Message<ProcessamentoDiagramaIniciadoDto>(m => m.SetEntityName(configuration["Mensageria:Topicos:ProcessamentoDiagramaIniciado"]!));
                 cfg.Message<ProcessamentoDiagramaAnalisadoDto>(m => m.SetEntityName(configuration["Mensageria:Topicos:ProcessamentoDiagramaAnalisado"]!));
                 cfg.Message<ProcessamentoDiagramaErroDto>(m => m.SetEntityName(configuration["Mensageria:Topicos:ProcessamentoDiagramaErro"]!));
 
-                cfg.ReceiveEndpoint(topicoUploadConcluido, e =>
+                cfg.ReceiveEndpoint(filaUploadConcluido, e =>
                 {
                     e.ConfigureConsumer<UploadDiagramaConcluidoConsumer>(context);
                 });
