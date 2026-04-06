@@ -16,4 +16,36 @@ public static class ProcessamentoDiagramaAssertionExtensions
     {
         aggregate.AnaliseResultado.ShouldBeNull();
     }
+
+    public static void DeveEstarRecentementeCriado(this ProcessamentoDiagramaAggregate aggregate, Guid analiseDiagramaId)
+    {
+        aggregate.Id.ShouldNotBe(Guid.Empty);
+        aggregate.AnaliseDiagramaId.ShouldBe(analiseDiagramaId);
+        aggregate.DeveEstarComStatus(StatusProcessamentoEnum.AguardandoProcessamento);
+        aggregate.TentativasProcessamento.Valor.ShouldBe(0);
+        aggregate.NaoDeveConterAnaliseResultado();
+        aggregate.HistoricoTemporal.DataCriacao.ShouldNotBe(default);
+    }
+
+    public static void DeveEstarComProcessamentoIniciado(this ProcessamentoDiagramaAggregate aggregate)
+    {
+        aggregate.DeveEstarComStatus(StatusProcessamentoEnum.EmProcessamento);
+        aggregate.HistoricoTemporal.DataInicioProcessamento.ShouldNotBeNull();
+    }
+
+    public static void DeveEstarConcluido(this ProcessamentoDiagramaAggregate aggregate, int tentativasEsperadas)
+    {
+        aggregate.DeveEstarComStatus(StatusProcessamentoEnum.Concluido);
+        aggregate.DeveConterAnaliseResultado();
+        aggregate.TentativasProcessamento.Valor.ShouldBe(tentativasEsperadas);
+        aggregate.HistoricoTemporal.DataConclusaoProcessamento.ShouldNotBeNull();
+    }
+
+    public static void DeveEstarComFalha(this ProcessamentoDiagramaAggregate aggregate, int tentativasEsperadas)
+    {
+        aggregate.DeveEstarComStatus(StatusProcessamentoEnum.Falha);
+        aggregate.TentativasProcessamento.Valor.ShouldBe(tentativasEsperadas);
+        aggregate.NaoDeveConterAnaliseResultado();
+        aggregate.HistoricoTemporal.DataConclusaoProcessamento.ShouldNotBeNull();
+    }
 }
