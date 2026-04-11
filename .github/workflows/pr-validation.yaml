@@ -20,9 +20,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Encontrar arquivo da Solution (.sln)
+      - name: Encontrar arquivo da Solution (.sln/.slnx)
         id: find_sln
-        run: echo "sln_path=$(find . -name '*.sln' -print -quit)" >> $GITHUB_OUTPUT
+        run: echo "sln_path=$(find . -name '*.sln' -o -name '*.slnx' | head -1)" >> $GITHUB_OUTPUT
       - name: Restaurar dependências
         run: dotnet restore ${{ steps.find_sln.outputs.sln_path }}
       - name: Build (Release)
