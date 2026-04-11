@@ -1,4 +1,3 @@
-using Infrastructure.Monitoramento.Correlation;
 using MassTransit;
 
 namespace Infrastructure.Messaging.Filters;
@@ -15,13 +14,7 @@ public class SendCorrelationIdFilter<T> : IFilter<SendContext<T>> where T : clas
 
     public async Task Send(SendContext<T> context, IPipe<SendContext<T>> next)
     {
-        var correlationId = CorrelationContext.Current ?? Guid.NewGuid().ToString();
-
-        context.Headers.Set(CorrelationConstants.HeaderName, correlationId);
-
-        if (Guid.TryParse(correlationId, out var guid))
-            context.CorrelationId = guid;
-
+        CorrelationIdFilterHelper.AplicarCorrelationId(context);
         await next.Send(context);
     }
 }

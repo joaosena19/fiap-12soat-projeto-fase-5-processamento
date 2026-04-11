@@ -1,26 +1,22 @@
 using Application.Contracts.Monitoramento;
-using Microsoft.Extensions.Logging;
 using Serilog.Context;
 
 namespace Infrastructure.Monitoramento;
 
 public class ContextualLogger : IAppLogger
 {
-    private const string MessageTemplateProperty = "message_template";
-    private readonly ILogger _logger;
+    private readonly IAppLogger _innerLogger;
     private readonly Dictionary<string, object?> _context;
 
-    public ContextualLogger(ILogger logger, Dictionary<string, object?> context)
+    public ContextualLogger(IAppLogger innerLogger, Dictionary<string, object?> context)
     {
-        _logger = logger;
+        _innerLogger = innerLogger;
         _context = context;
     }
 
-    private void LogWithContext(string messageTemplate, Action logAction)
+    private void ExecutarComContexto(Action logAction)
     {
         var disposables = new List<IDisposable>();
-
-        disposables.Add(LogContext.PushProperty(MessageTemplateProperty, messageTemplate));
 
         foreach (var kvp in _context)
         {
@@ -39,34 +35,21 @@ public class ContextualLogger : IAppLogger
         }
     }
 
-    public void LogDebug(string messageTemplate, params object[] args)
-    {
-        LogWithContext(messageTemplate, () => _logger.LogDebug(messageTemplate, args));
-    }
+    public void LogDebug(string messageTemplate, params object[] args) => ExecutarComContexto(() => _innerLogger.LogDebug(messageTemplate, args));
 
-    public void LogInformation(string messageTemplate, params object[] args)
-    {
-        LogWithContext(messageTemplate, () => _logger.LogInformation(messageTemplate, args));
-    }
+    public void LogInformation(string messageTemplate, params object[] args) => ExecutarComContexto(() => _innerLogger.LogInformation(messageTemplate, args));
 
-    public void LogWarning(string messageTemplate, params object[] args)
-    {
-        LogWithContext(messageTemplate, () => _logger.LogWarning(messageTemplate, args));
-    }
+    public void LogWarning(string messageTemplate, params object[] args) => ExecutarComContexto(() => _innerLogger.LogWarning(messageTemplate, args));
 
-    public void LogError(string messageTemplate, params object[] args)
-    {
-        LogWithContext(messageTemplate, () => _logger.LogError(messageTemplate, args));
-    }
+    public void LogWarning(Exception ex, string messageTemplate, params object[] args) => ExecutarComContexto(() => _innerLogger.LogWarning(ex, messageTemplate, args));
 
-    public void LogError(Exception ex, string messageTemplate, params object[] args)
-    {
-        LogWithContext(messageTemplate, () => _logger.LogError(ex, messageTemplate, args));
-    }
+    public void LogError(string messageTemplate, params object[] args) => ExecutarComContexto(() => _innerLogger.LogError(messageTemplate, args));
+
+    public void LogError(Exception ex, string messageTemplate, params object[] args) => ExecutarComContexto(() => _innerLogger.LogError(ex, messageTemplate, args));
 
     public IAppLogger ComPropriedade(string key, object? value)
     {
         var newContext = new Dictionary<string, object?>(_context) { [key] = value };
-        return new ContextualLogger(_logger, newContext);
+        return new ContextualLogger(_innerLogger, newContext);
     }
 }

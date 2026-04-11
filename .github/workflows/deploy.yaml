@@ -8,7 +8,6 @@ env:
   SERVICE_NAME: processamento
   DOCKER_IMAGE_NAME: processamento-service
   K8S_DEPLOYMENT_NAME: processamento-service
-  K8S_SERVICE_NAME: processamento-service
   K8S_SECRET_NAME: processamento-secret
   K8S_CONFIG_NAME: processamento-config
   DB_STATE_KEY: fase5/processamento-database/terraform.tfstate
@@ -150,7 +149,7 @@ jobs:
 
       - name: Buscar dados do PostgreSQL via Terraform State
         run: |
-          STATE_DATA=$(aws s3 cp s3://${{ secrets.TF_VAR_BUCKET_NAME }}/${{ env.DB_STATE_KEY }} -)
+          STATE_DATA=$(aws s3 cp s3://${{ secrets.TF_VAR_TFSTATE_BUCKET_NAME }}/${{ env.DB_STATE_KEY }} -)
           DB_HOST_VALUE=$(echo "$STATE_DATA" | jq -r '.outputs.db_instance_address.value')
           DB_PORT_VALUE=$(echo "$STATE_DATA" | jq -r '.outputs.db_instance_port.value // "5432"')
           DB_NAME_VALUE=$(echo "$STATE_DATA" | jq -r '.outputs.db_name.value')
@@ -169,9 +168,17 @@ jobs:
 
       - name: Buscar URLs das filas SQS via Terraform State (Infra)
         run: |
-          INFRA_STATE=$(aws s3 cp s3://${{ secrets.TF_VAR_BUCKET_NAME }}/infra/terraform.tfstate -)
+          INFRA_STATE=$(aws s3 cp s3://${{ secrets.TF_VAR_TFSTATE_BUCKET_NAME }}/infra/terraform.tfstate -)
           SQS_UPLOAD_CONCLUIDO_URL=$(echo "$INFRA_STATE" | jq -r '.outputs.sqs_upload_diagrama_concluido_url.value // empty')
+          S3_BUCKET_NAME=$(echo "$INFRA_STATE" | jq -r '.outputs.upload_bucket_name.value // empty')
+          SNS_PROCESSAMENTO_INICIADO_ARN=$(echo "$INFRA_STATE" | jq -r '.outputs.sns_processamento_diagrama_iniciado_arn.value // empty')
+          SNS_PROCESSAMENTO_ANALISADO_ARN=$(echo "$INFRA_STATE" | jq -r '.outputs.sns_processamento_diagrama_analisado_arn.value // empty')
+          SNS_PROCESSAMENTO_ERRO_ARN=$(echo "$INFRA_STATE" | jq -r '.outputs.sns_processamento_diagrama_erro_arn.value // empty')
           echo "SQS_UPLOAD_CONCLUIDO_URL=$SQS_UPLOAD_CONCLUIDO_URL" >> $GITHUB_ENV
+          echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" >> $GITHUB_ENV
+          echo "SNS_PROCESSAMENTO_INICIADO_ARN=$SNS_PROCESSAMENTO_INICIADO_ARN" >> $GITHUB_ENV
+          echo "SNS_PROCESSAMENTO_ANALISADO_ARN=$SNS_PROCESSAMENTO_ANALISADO_ARN" >> $GITHUB_ENV
+          echo "SNS_PROCESSAMENTO_ERRO_ARN=$SNS_PROCESSAMENTO_ERRO_ARN" >> $GITHUB_ENV
 
       - name: Configurar acesso ao cluster EKS
         run: |
@@ -184,6 +191,7 @@ jobs:
           kubectl create secret generic ${{ env.K8S_SECRET_NAME }} \
             --from-literal=DatabaseConnection__Password=${{ secrets.DB_MASTER_PASSWORD }} \
             --from-literal=ApiCredentials__ClientSecret=${{ secrets.API_CLIENT_SECRET }} \
+            --from-literal=LLM__ApiKey=${{ secrets.LLM_API_KEY }} \
             --from-literal=NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
             --from-literal=AWS__AccessKeyId=${{ secrets.AWS_ACCESS_KEY_ID }} \
             --from-literal=AWS__SecretAccessKey=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
@@ -197,9 +205,13 @@ jobs:
             --from-literal=DatabaseConnection__DatabaseName="$DB_NAME_VALUE" \
             --from-literal=DatabaseConnection__User="$DB_USERNAME_VALUE" \
             --from-literal=ASPNETCORE_ENVIRONMENT=Production \
-            --from-literal=ASPNETCORE_URLS=http://+:8080 \
             --from-literal=ApiCredentials__ClientId=${{ secrets.API_CLIENT_ID }} \
             --from-literal=AWS__Region=${{ env.AWS_REGION }} \
+            --from-literal=Mensageria__Topicos__UploadDiagramaConcluido=fase5-upload-diagrama-concluido \
+            --from-literal=Mensageria__Topicos__ProcessamentoDiagramaIniciado=fase5-processamento-diagrama-iniciado \
+            --from-literal=Mensageria__Topicos__ProcessamentoDiagramaAnalisado=fase5-processamento-diagrama-analisado \
+            --from-literal=Mensageria__Topicos__ProcessamentoDiagramaErro=fase5-processamento-diagrama-erro \
+            --from-literal=LLM__Model=gemini-2.0-flash \
             --from-literal=NEW_RELIC_APP_NAME=ProcessamentoService \
             --from-literal=NEW_RELIC_APPLICATION_LOGGING_ENABLED=true \
             --from-literal=NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED=true \
@@ -217,14 +229,9 @@ jobs:
         run: |
           sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.publish-docker-image.outputs.version_tag }}|g" k8s/${{ env.SERVICE_NAME }}-deployment.yaml
 
-      - name: Aplicar metrics server
-        run: kubectl apply -f k8s/metrics-server.yaml
-        continue-on-error: true
-
       - name: Aplicar manifestos K8s
         run: |
           kubectl apply -f k8s/${{ env.SERVICE_NAME }}-deployment.yaml
-          kubectl apply -f k8s/${{ env.SERVICE_NAME }}-service.yaml
           kubectl apply -f k8s/${{ env.SERVICE_NAME }}-hpa.yaml
 
       - name: Aguardar e verificar pods
@@ -236,8 +243,3 @@ jobs:
         
       - name: Verificar status do deploy
         run: kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT_NAME }} --timeout=300s
-
-      - name: Exibir informações do serviço
-        run: |
-          kubectl get service ${{ env.K8S_SERVICE_NAME }}
-          kubectl get endpoints ${{ env.K8S_SERVICE_NAME }}

@@ -1,7 +1,9 @@
 using Application.Contracts.Messaging;
 using Application.Contracts.Messaging.Dtos;
 using Infrastructure.Messaging;
+using Infrastructure.Messaging.Consumers;
 using Infrastructure.Messaging.Filters;
+using Infrastructure.Messaging.Publishers;
 using MassTransit;
 using System.Text.Json.Serialization;
 
@@ -18,7 +20,7 @@ public static class MessagingConfiguration
 
             x.UsingAmazonSqs((context, cfg) =>
             {
-                var region = configuration["AWS:Region"] ?? "us-east-1";
+                var region = configuration["AWS:Region"] ?? throw new InvalidOperationException("Configuração AWS:Region não encontrada");
 
                 cfg.Host(region, h =>
                 {
@@ -32,12 +34,15 @@ public static class MessagingConfiguration
                     }
                 });
 
-                cfg.Message<UploadDiagramaConcluidoDto>(m => m.SetEntityName("fase5-upload-diagrama-concluido"));
-                cfg.Message<ProcessamentoDiagramaIniciadoDto>(m => m.SetEntityName("fase5-processamento-diagrama-iniciado"));
-                cfg.Message<ProcessamentoDiagramaAnalisadoDto>(m => m.SetEntityName("fase5-processamento-diagrama-analisado"));
-                cfg.Message<ProcessamentoDiagramaErroDto>(m => m.SetEntityName("fase5-processamento-diagrama-erro"));
+                var topicoUploadConcluido = configuration["Mensageria:Topicos:UploadDiagramaConcluido"]!;
+                var filaUploadConcluido = configuration["Mensageria:Filas:UploadDiagramaConcluido"] ?? topicoUploadConcluido;
 
-                cfg.ReceiveEndpoint("fase5-upload-diagrama-concluido", e =>
+                cfg.Message<UploadDiagramaConcluidoDto>(m => m.SetEntityName(topicoUploadConcluido));
+                cfg.Message<ProcessamentoDiagramaIniciadoDto>(m => m.SetEntityName(configuration["Mensageria:Topicos:ProcessamentoDiagramaIniciado"]!));
+                cfg.Message<ProcessamentoDiagramaAnalisadoDto>(m => m.SetEntityName(configuration["Mensageria:Topicos:ProcessamentoDiagramaAnalisado"]!));
+                cfg.Message<ProcessamentoDiagramaErroDto>(m => m.SetEntityName(configuration["Mensageria:Topicos:ProcessamentoDiagramaErro"]!));
+
+                cfg.ReceiveEndpoint(filaUploadConcluido, e =>
                 {
                     e.ConfigureConsumer<UploadDiagramaConcluidoConsumer>(context);
                 });

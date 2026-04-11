@@ -32,6 +32,12 @@ public class LoggerAdapter<T> : IAppLogger
             _logger.LogWarning(messageTemplate, args);
     }
 
+    public void LogWarning(Exception ex, string messageTemplate, params object[] args)
+    {
+        using (LogContext.PushProperty(MessageTemplateProperty, messageTemplate))
+            _logger.LogWarning(ex, messageTemplate, args);
+    }
+
     public void LogError(string messageTemplate, params object[] args)
     {
         using (LogContext.PushProperty(MessageTemplateProperty, messageTemplate))
@@ -47,6 +53,6 @@ public class LoggerAdapter<T> : IAppLogger
     public IAppLogger ComPropriedade(string key, object? value)
     {
         var context = new Dictionary<string, object?> { [key] = value };
-        return new ContextualLogger(_logger, context);
+        return new ContextualLogger(this, context);
     }
 }

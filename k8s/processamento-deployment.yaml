@@ -16,14 +16,19 @@ spec:
       - name: processamento-service
         image: joaodainese/processamento-service:latest
         imagePullPolicy: Always
-        ports:
-        - containerPort: 8080
-          name: http
         envFrom:
           - configMapRef:
               name: processamento-config
           - secretRef:
               name: processamento-secret
+        livenessProbe:
+          exec:
+            command:
+              - pidof
+              - dotnet
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          failureThreshold: 3
         resources:
           requests:
             cpu: "50m"
@@ -33,27 +38,3 @@ spec:
             cpu: "500m"
             memory: "512Mi"
             ephemeral-storage: "2Gi"
-        livenessProbe:
-          httpGet:
-            path: /health/live
-            port: 8080
-          initialDelaySeconds: 60
-          periodSeconds: 30
-          timeoutSeconds: 10
-          failureThreshold: 5
-        readinessProbe:
-          httpGet:
-            path: /health/ready
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 15
-          timeoutSeconds: 10
-          failureThreshold: 5
-        startupProbe:
-          httpGet:
-            path: /health/startup
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 15
-          timeoutSeconds: 10
-          failureThreshold: 20
