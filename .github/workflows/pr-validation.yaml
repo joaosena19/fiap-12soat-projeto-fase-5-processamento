@@ -33,7 +33,6 @@ jobs:
             --no-build --configuration Release --verbosity normal \
             --logger "trx;LogFileName=test-results.trx" \
             --collect:"XPlat Code Coverage" \
-            --results-directory ./TestResults \
             --settings src/Tests/coverlet.runsettings \
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
         continue-on-error: true
