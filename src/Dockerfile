@@ -24,11 +24,11 @@ WORKDIR /app
 
 # Install the New Relic agent
 USER root
-RUN apt-get update && apt-get install -y ca-certificates gnupg wget \
-    && wget -O - https://download.newrelic.com/infrastructure_agent/gpg/newrelic-infra.gpg | gpg --dearmor -o /usr/share/keyrings/newrelic-infra.gpg \
-    && echo 'deb [signed-by=/usr/share/keyrings/newrelic-infra.gpg] http://apt.newrelic.com/debian/ newrelic non-free' | tee /etc/apt/sources.list.d/newrelic.list \
+RUN apt-get update \
+    && apt-get install -y ca-certificates \
+    && echo 'deb [trusted=yes] https://apt.newrelic.com/debian/ newrelic non-free' | tee /etc/apt/sources.list.d/newrelic.list \
     && apt-get update \
-    && apt-get install -y 'newrelic-dotnet-agent' \
+    && apt-get install -y newrelic-dotnet-agent \
     && rm -rf /var/lib/apt/lists/*
 
 # Enable the New Relic agent
