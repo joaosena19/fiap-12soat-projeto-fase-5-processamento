@@ -172,7 +172,7 @@ public class WorkerConfigurationsTests
 
     [Fact(DisplayName = "Deve registrar serviços de mensageria quando configuração é válida")]
     [Trait("Worker", "MessagingConfiguration")]
-    public void AddMessaging_DeveRegistrarServicos_QuandoConfiguracaoValida()
+    public async Task AddMessaging_DeveRegistrarServicos_QuandoConfiguracaoValida()
     {
         // Arrange
         var fixture = new WorkerConfigurationTestFixture()
@@ -188,12 +188,12 @@ public class WorkerConfigurationsTests
         fixture.Services.Any(d => d.ServiceType == typeof(IBus)).ShouldBeTrue();
         fixture.Services.Any(d => d.ServiceType == typeof(global::Application.Contracts.Messaging.IProcessamentoDiagramaMessagePublisher)).ShouldBeTrue();
         provider.GetService<IBusControl>().ShouldNotBeNull();
-        provider.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        await provider.DisposeAsync();
     }
 
     [Fact(DisplayName = "Deve falhar ao materializar bus quando região AWS não está configurada")]
     [Trait("Worker", "MessagingConfiguration")]
-    public void AddMessaging_DeveFalharMaterializacaoBus_QuandoRegiaoAwsNaoConfigurada()
+    public async Task AddMessaging_DeveFalharMaterializacaoBus_QuandoRegiaoAwsNaoConfigurada()
     {
         // Arrange
         var fixture = new WorkerConfigurationTestFixture()
@@ -206,7 +206,7 @@ public class WorkerConfigurationsTests
 
         // Assert
         acao.ShouldThrow<InvalidOperationException>();
-        provider.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        await provider.DisposeAsync();
     }
 
 }
