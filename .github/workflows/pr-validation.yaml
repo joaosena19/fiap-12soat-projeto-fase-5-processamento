@@ -56,7 +56,7 @@ jobs:
       - name: Validar Cobertura Mínima (80%)
         run: |
           echo "Buscando relatórios de cobertura..."
-          COVERAGE_FILE=$(find ./TestResults -name "coverage.opencover.xml" -print -quit)
+          COVERAGE_FILE=$(find . -type f -name "coverage.opencover.xml" -print -quit)
           if [ -z "$COVERAGE_FILE" ]; then
             echo "❌ Nenhum relatório de cobertura encontrado"
             exit 1
