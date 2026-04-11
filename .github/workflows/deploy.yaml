@@ -149,7 +149,7 @@ jobs:
 
       - name: Buscar dados do PostgreSQL via Terraform State
         run: |
-          STATE_DATA=$(aws s3 cp s3://${{ secrets.TF_VAR_BUCKET_NAME }}/${{ env.DB_STATE_KEY }} -)
+          STATE_DATA=$(aws s3 cp s3://${{ secrets.TF_VAR_TFSTATE_BUCKET_NAME }}/${{ env.DB_STATE_KEY }} -)
           DB_HOST_VALUE=$(echo "$STATE_DATA" | jq -r '.outputs.db_instance_address.value')
           DB_PORT_VALUE=$(echo "$STATE_DATA" | jq -r '.outputs.db_instance_port.value // "5432"')
           DB_NAME_VALUE=$(echo "$STATE_DATA" | jq -r '.outputs.db_name.value')
@@ -168,7 +168,7 @@ jobs:
 
       - name: Buscar URLs das filas SQS via Terraform State (Infra)
         run: |
-          INFRA_STATE=$(aws s3 cp s3://${{ secrets.TF_VAR_BUCKET_NAME }}/infra/terraform.tfstate -)
+          INFRA_STATE=$(aws s3 cp s3://${{ secrets.TF_VAR_TFSTATE_BUCKET_NAME }}/infra/terraform.tfstate -)
           SQS_UPLOAD_CONCLUIDO_URL=$(echo "$INFRA_STATE" | jq -r '.outputs.sqs_upload_diagrama_concluido_url.value // empty')
           S3_BUCKET_NAME=$(echo "$INFRA_STATE" | jq -r '.outputs.upload_bucket_name.value // empty')
           SNS_PROCESSAMENTO_INICIADO_ARN=$(echo "$INFRA_STATE" | jq -r '.outputs.sns_processamento_diagrama_iniciado_arn.value // empty')
