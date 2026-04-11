@@ -73,7 +73,7 @@ public class ProcessarDiagramaUseCase
         var duracaoMs = (long)(DateTimeOffset.UtcNow - inicioProcessamento).TotalMilliseconds;
         metrics.RegistrarProcessamentoConcluido(processamentoDiagrama.AnaliseDiagramaId, duracaoMs);
 
-        logger.ComUseCase(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamentoDiagrama.AnaliseDiagramaId).LogDebug($"Processamento concluído com sucesso para {{{LogNomesPropriedades.AnaliseDiagramaId}}}", processamentoDiagrama.AnaliseDiagramaId);
+        logger.ComUseCase(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamentoDiagrama.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.DuracaoMs, duracaoMs).LogDebug($"Processamento concluído com sucesso para {{{LogNomesPropriedades.AnaliseDiagramaId}}} em {{{LogNomesPropriedades.DuracaoMs}}}ms", processamentoDiagrama.AnaliseDiagramaId, duracaoMs);
     }
 
     private async Task TratarFalhaAsync(Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama processamentoDiagrama, ResultadoAnaliseDto resultado, IProcessamentoDiagramaGateway gateway, IProcessamentoDiagramaMessagePublisher messagePublisher, IMetricsService metrics, IAppLogger logger)

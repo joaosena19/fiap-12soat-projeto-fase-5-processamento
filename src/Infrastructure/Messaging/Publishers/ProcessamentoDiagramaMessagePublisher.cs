@@ -37,7 +37,16 @@ public class ProcessamentoDiagramaMessagePublisher : IProcessamentoDiagramaMessa
         };
 
         _logger.ComEnvioMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamento.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.Extensao, extensao).LogInformation($"Publicando evento de processamento iniciado para {{{LogNomesPropriedades.AnaliseDiagramaId}}}", processamento.AnaliseDiagramaId);
-        await _publishEndpoint.Publish(mensagem);
+
+        try
+        {
+            await _publishEndpoint.Publish(mensagem);
+        }
+        catch (Exception ex)
+        {
+            _logger.ComEnvioMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamento.AnaliseDiagramaId).LogError(ex, $"Falha ao publicar mensagem para {{{LogNomesPropriedades.AnaliseDiagramaId}}}", processamento.AnaliseDiagramaId);
+            throw;
+        }
     }
 
     public async Task PublicarDiagramaAnalisadoAsync(Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama processamento)
@@ -54,7 +63,16 @@ public class ProcessamentoDiagramaMessagePublisher : IProcessamentoDiagramaMessa
         };
 
         _logger.ComEnvioMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamento.AnaliseDiagramaId).LogInformation($"Publicando evento de processamento analisado para {{{LogNomesPropriedades.AnaliseDiagramaId}}}", processamento.AnaliseDiagramaId);
-        await _publishEndpoint.Publish(mensagem);
+
+        try
+        {
+            await _publishEndpoint.Publish(mensagem);
+        }
+        catch (Exception ex)
+        {
+            _logger.ComEnvioMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamento.AnaliseDiagramaId).LogError(ex, $"Falha ao publicar mensagem para {{{LogNomesPropriedades.AnaliseDiagramaId}}}", processamento.AnaliseDiagramaId);
+            throw;
+        }
     }
 
     public async Task PublicarProcessamentoErroAsync(Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama processamento, string motivo)
@@ -69,6 +87,15 @@ public class ProcessamentoDiagramaMessagePublisher : IProcessamentoDiagramaMessa
         };
 
         _logger.ComEnvioMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamento.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.Motivo, motivo).LogInformation($"Publicando evento de processamento com erro para {{{LogNomesPropriedades.AnaliseDiagramaId}}}", processamento.AnaliseDiagramaId);
-        await _publishEndpoint.Publish(mensagem);
+
+        try
+        {
+            await _publishEndpoint.Publish(mensagem);
+        }
+        catch (Exception ex)
+        {
+            _logger.ComEnvioMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamento.AnaliseDiagramaId).LogError(ex, $"Falha ao publicar mensagem para {{{LogNomesPropriedades.AnaliseDiagramaId}}}", processamento.AnaliseDiagramaId);
+            throw;
+        }
     }
 }

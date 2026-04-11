@@ -6,6 +6,7 @@ using Application.ProcessamentoDiagrama.Dtos;
 using Application.ProcessamentoDiagrama.UseCases;
 using Domain.ProcessamentoDiagrama.Enums;
 using Microsoft.Extensions.Logging;
+using Shared.Constants;
 
 namespace Infrastructure.Handlers;
 
@@ -19,13 +20,13 @@ public class ProcessamentoDiagramaHandler : BaseHandler
 
         if (processamentoExistente?.StatusProcessamento.Valor == StatusProcessamentoEnum.EmProcessamento)
         {
-            logger.LogWarning("Processamento já está em andamento para o AnaliseDiagramaId, ignorando mensagem duplicada");
+            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogInformation("Processamento já em andamento, ignorando mensagem duplicada para {AnaliseDiagramaId}", processarDiagramaDto.AnaliseDiagramaId);
             return;
         }
 
         if (processamentoExistente?.StatusProcessamento.Valor == StatusProcessamentoEnum.Concluido)
         {
-            logger.LogWarning("Processamento já foi concluído para o AnaliseDiagramaId, ignorando mensagem duplicada");
+            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogInformation("Processamento já concluído, ignorando mensagem duplicada para {AnaliseDiagramaId}", processarDiagramaDto.AnaliseDiagramaId);
             return;
         }
 
@@ -33,7 +34,7 @@ public class ProcessamentoDiagramaHandler : BaseHandler
         {
             var processamento = Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama.Criar(processarDiagramaDto.AnaliseDiagramaId);
             await gateway.SalvarAsync(processamento);
-            logger.LogDebug("Registro inicial de processamento criado.");
+            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogDebug("Registro inicial de processamento criado para {AnaliseDiagramaId}", processarDiagramaDto.AnaliseDiagramaId);
         }
 
         await ProcessarDiagramaAsync(processarDiagramaDto, gateway, llmService, messagePublisher, metrics);

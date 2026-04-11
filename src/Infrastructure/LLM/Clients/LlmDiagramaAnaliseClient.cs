@@ -4,6 +4,7 @@ using Application.Contracts.Monitoramento;
 using Infrastructure.Monitoramento;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using Shared.Constants;
 
 namespace Infrastructure.LLM;
 
@@ -33,7 +34,7 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
         _logger = loggerFactory.CriarAppLogger<LlmDiagramaAnaliseClient>();
     }
 
-    public async Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(string nomeFisico, byte[] conteudoArquivo, string extensao)
+    public async Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(Guid analiseDiagramaId, string nomeFisico, byte[] conteudoArquivo, string extensao)
     {
         var mediaType = ObterMediaType(extensao);
         var mensagens = new List<ChatMessage>
@@ -59,7 +60,7 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
 
             if (textoResposta == null)
             {
-                _logger.LogWarning("A LLM retornou uma resposta nula");
+                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogWarning("A LLM retornou uma resposta nula para {AnaliseDiagramaId}", analiseDiagramaId);
                 throw new LlmTransientException("A LLM retornou uma resposta nula.");
             }
 
@@ -67,7 +68,7 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
 
             if (analise == null)
             {
-                _logger.LogWarning("Falha ao desserializar a resposta da LLM");
+                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogWarning("Falha ao desserializar a resposta da LLM para {AnaliseDiagramaId}", analiseDiagramaId);
                 throw new LlmTransientException("Falha ao desserializar a resposta da LLM.");
             }
 

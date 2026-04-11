@@ -32,11 +32,12 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
 
         try
         {
-            _logger.LogDebug($"Iniciando chamada de análise da LLM para {{{LogNomesPropriedades.AnaliseDiagramaId}}}", analiseDiagramaId);
             var conteudoArquivo = await BaixarConteudoArquivoAsync(localizacaoUrl);
             var resultado = await ExecutarAnaliseComResilienciaAsync(analiseDiagramaId, nomeFisico, conteudoArquivo, extensao, tentativas => tentativasRealizadas = tentativas);
 
-            _logger.LogDebug($"Chamada de análise da LLM concluída para {{{LogNomesPropriedades.AnaliseDiagramaId}}} em {{{LogNomesPropriedades.DuracaoMs}}}ms", analiseDiagramaId, cronometro.ElapsedMilliseconds);
+            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                   .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
+                   .LogDebug($"Análise LLM concluída para {{{LogNomesPropriedades.AnaliseDiagramaId}}} em {{{LogNomesPropriedades.DuracaoMs}}}ms", analiseDiagramaId, cronometro.ElapsedMilliseconds);
 
             return resultado;
         }
@@ -64,7 +65,7 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
             if (tentativasRealizadas > 1)
                 _logger.LogWarning($"Nova tentativa de análise do diagrama para {{{LogNomesPropriedades.AnaliseDiagramaId}}}. {{{LogNomesPropriedades.Tentativas}}}", analiseDiagramaId, tentativasRealizadas);
 
-            return await _client.AnalisarDiagramaAsync(nomeFisico, conteudoArquivo, extensao);
+            return await _client.AnalisarDiagramaAsync(analiseDiagramaId, nomeFisico, conteudoArquivo, extensao);
         }, CancellationToken.None);
 
         return resultado with { TentativasRealizadas = tentativasRealizadas };

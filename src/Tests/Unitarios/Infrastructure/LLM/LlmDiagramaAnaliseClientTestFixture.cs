@@ -14,5 +14,5 @@ public class LlmDiagramaAnaliseClientTestFixture
     }
 
     public async Task<ResultadoAnaliseDto> AnalisarAsync(string nomeArquivo = "arquivo.png", byte[]? conteudo = null, string extensao = ".png") =>
-        await Client.AnalisarDiagramaAsync(nomeArquivo, conteudo ?? [0x01], extensao);
+        await Client.AnalisarDiagramaAsync(Guid.NewGuid(), nomeArquivo, conteudo ?? [0x01], extensao);
 }

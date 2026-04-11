@@ -4,5 +4,5 @@ namespace Infrastructure.LLM;
 
 public interface IDiagramaAnaliseClient
 {
-    Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(string nomeFisico, byte[] conteudoArquivo, string extensao);
+    Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(Guid analiseDiagramaId, string nomeFisico, byte[] conteudoArquivo, string extensao);
 }

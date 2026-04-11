@@ -11,7 +11,7 @@ public class S3ArquivoDownloaderTests
     {
         // Arrange
         var amazonS3Mock = new Mock<IAmazonS3>();
-        var downloader = new S3ArquivoDownloader(amazonS3Mock.Object);
+        var downloader = new S3ArquivoDownloader(amazonS3Mock.Object, new LoggerFactory());
         var bytesEsperados = new byte[] { 1, 2, 3, 4 };
         await using var stream = new MemoryStream(bytesEsperados);
         amazonS3Mock.AoObterObjeto().Retorna(stream, bucket: "bucket-teste", key: "pasta/arquivo.png");
@@ -29,7 +29,7 @@ public class S3ArquivoDownloaderTests
     {
         // Arrange
         var amazonS3Mock = new Mock<IAmazonS3>();
-        var downloader = new S3ArquivoDownloader(amazonS3Mock.Object);
+        var downloader = new S3ArquivoDownloader(amazonS3Mock.Object, new LoggerFactory());
         amazonS3Mock.AoObterObjeto().LancaExcecao(new AmazonS3Exception("Acesso negado"));
 
         // Act & Assert

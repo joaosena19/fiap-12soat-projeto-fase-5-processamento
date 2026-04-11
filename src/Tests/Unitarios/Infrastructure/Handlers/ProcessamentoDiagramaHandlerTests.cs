@@ -51,7 +51,7 @@ public class ProcessamentoDiagramaHandlerTests
         // Assert
         _fixture.LlmServiceMock.NaoDeveTerAnalisado();
         _fixture.GatewayMock.NaoDeveTerSalvo();
-        _fixture.LoggerMock.DeveTerLogadoWarning();
+        _fixture.LoggerMock.DeveTerLogadoInformation();
     }
 
     [Fact(DisplayName = "Deve ignorar mensagem duplicada quando ja estiver concluido")]
@@ -70,7 +70,7 @@ public class ProcessamentoDiagramaHandlerTests
         // Assert
         _fixture.LlmServiceMock.NaoDeveTerAnalisado();
         _fixture.GatewayMock.NaoDeveTerSalvo();
-        _fixture.LoggerMock.DeveTerLogadoWarning();
+        _fixture.LoggerMock.DeveTerLogadoInformation();
     }
 
     [Fact(DisplayName = "Deve reprocessar quando status atual for falha")]

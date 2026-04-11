@@ -14,12 +14,12 @@ public static class DiagramaAnaliseClientMockExtensions
 
         public void Retorna(ResultadoAnaliseDto resultado)
         {
-            _mock.Setup(x => x.AnalisarDiagramaAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>())).ReturnsAsync(resultado);
+            _mock.Setup(x => x.AnalisarDiagramaAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>())).ReturnsAsync(resultado);
         }
 
         public void LancaExcecao(Exception excecao)
         {
-            _mock.Setup(x => x.AnalisarDiagramaAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>())).ThrowsAsync(excecao);
+            _mock.Setup(x => x.AnalisarDiagramaAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>())).ThrowsAsync(excecao);
         }
     }
 }
