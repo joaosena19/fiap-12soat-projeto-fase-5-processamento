@@ -30,16 +30,33 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
         var tentativasRealizadas = 0;
         var cronometro = Stopwatch.StartNew();
 
+        if (string.IsNullOrWhiteSpace(localizacaoUrl))
+        {
+            cronometro.Stop();
+            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogError("LocalizacaoUrl vazia ou nula para {AnaliseDiagramaId}. A mensagem pode ter sido enviada com dados incompletos.", analiseDiagramaId);
+            return CriarResultadoFalha(new InvalidOperationException("LocalizacaoUrl não pode ser vazia."), 0, OrigemErroConstantes.Armazenamento);
+        }
+
+        byte[] conteudoArquivo;
         try
         {
             _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogDebug("Iniciando download do diagrama de {LocalizacaoUrl} para {AnaliseDiagramaId}", localizacaoUrl, analiseDiagramaId);
-
-            var conteudoArquivo = await BaixarConteudoArquivoAsync(localizacaoUrl);
-
+            conteudoArquivo = await BaixarConteudoArquivoAsync(localizacaoUrl);
             _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
                    .ComPropriedade(LogNomesPropriedades.Tamanho, conteudoArquivo.Length)
                    .LogDebug("Download concluído para {AnaliseDiagramaId}. Tamanho: {Tamanho} bytes", analiseDiagramaId, conteudoArquivo.Length);
+        }
+        catch (Exception ex)
+        {
+            cronometro.Stop();
+            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                   .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
+                   .LogError(ex, "Falha ao baixar arquivo do armazenamento para {AnaliseDiagramaId} em {DuracaoMs}ms. ExceptionType: {ExceptionType}, Motivo: {Motivo}", analiseDiagramaId, cronometro.ElapsedMilliseconds, ex.GetType().FullName ?? ex.GetType().Name, ex.Message);
+            return CriarResultadoFalha(ex, 0, OrigemErroConstantes.Armazenamento);
+        }
 
+        try
+        {
             var resultado = await ExecutarAnaliseComResilienciaAsync(analiseDiagramaId, nomeFisico, conteudoArquivo, extensao, tentativas => tentativasRealizadas = tentativas);
 
             cronometro.Stop();
@@ -57,7 +74,7 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
                    .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
                    .ComPropriedade(LogNomesPropriedades.Tentativas, tentativasRealizadas)
                    .LogError(ex, "Falha permanente na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s) em {DuracaoMs}ms. Motivo: {Motivo}", analiseDiagramaId, tentativasRealizadas, cronometro.ElapsedMilliseconds, ex.Message);
-            return CriarResultadoFalha(ex, tentativasRealizadas);
+            return CriarResultadoFalha(ex, tentativasRealizadas, OrigemErroConstantes.Llm);
         }
         catch (Exception ex)
         {
@@ -66,7 +83,7 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
                    .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
                    .ComPropriedade(LogNomesPropriedades.Tentativas, tentativasRealizadas)
                    .LogError(ex, "Falha ao analisar diagrama na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s) em {DuracaoMs}ms. ExceptionType: {ExceptionType}, Motivo: {Motivo}", analiseDiagramaId, tentativasRealizadas, cronometro.ElapsedMilliseconds, ex.GetType().FullName ?? ex.GetType().Name, ex.Message);
-            return CriarResultadoFalha(ex, tentativasRealizadas);
+            return CriarResultadoFalha(ex, tentativasRealizadas, OrigemErroConstantes.Desconhecido);
         }
     }
 
@@ -93,13 +110,14 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
         return resultado with { TentativasRealizadas = tentativasRealizadas };
     }
 
-    private static ResultadoAnaliseDto CriarResultadoFalha(Exception ex, int tentativasRealizadas)
+    private static ResultadoAnaliseDto CriarResultadoFalha(Exception ex, int tentativasRealizadas, string? origemErro = null)
     {
         return new ResultadoAnaliseDto
         {
             Sucesso = false,
             MotivoErro = ex.Message,
-            TentativasRealizadas = tentativasRealizadas
+            TentativasRealizadas = tentativasRealizadas,
+            OrigemErro = origemErro
         };
     }
 }
