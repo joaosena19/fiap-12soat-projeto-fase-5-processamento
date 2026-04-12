@@ -45,6 +45,7 @@ public class NewRelicMetricsService : IMetricsService
     {
         atributos[LogNomesPropriedades.Timestamp] = DateTimeOffset.UtcNow;
         AdicionarCorrelationId(atributos);
+        AdicionarAppName(atributos);
         NR.NewRelic.RecordCustomEvent(nomeEvento, atributos);
     }
 
@@ -53,5 +54,12 @@ public class NewRelicMetricsService : IMetricsService
         var correlationId = CorrelationContext.Current;
         if (!string.IsNullOrWhiteSpace(correlationId))
             atributos[LogNomesPropriedades.CorrelationId] = correlationId;
+    }
+
+    private static void AdicionarAppName(Dictionary<string, object> atributos)
+    {
+        var appName = Environment.GetEnvironmentVariable("NEW_RELIC_APP_NAME");
+        if (!string.IsNullOrWhiteSpace(appName))
+            atributos[LogNomesPropriedades.AppName] = appName;
     }
 }

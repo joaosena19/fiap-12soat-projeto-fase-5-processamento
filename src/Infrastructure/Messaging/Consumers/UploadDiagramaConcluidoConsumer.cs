@@ -43,7 +43,7 @@ public class UploadDiagramaConcluidoConsumer : IConsumer<UploadDiagramaConcluido
             var metrics = new NewRelicMetricsService();
             var messageId = context.MessageId?.ToString() ?? LogNomesValores.Desconhecido;
 
-            logger.ComConsumoMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, mensagem.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.MessageId, messageId).LogInformation($"Recebida mensagem de upload concluído para processamento. {{{LogNomesPropriedades.MessageId}}}", messageId);
+            logger.ComConsumoMensagem(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, mensagem.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.MessageId, messageId).ComPropriedade(LogNomesPropriedades.LocalizacaoUrl, mensagem.LocalizacaoUrl).ComPropriedade(LogNomesPropriedades.NomeFisico, mensagem.NomeFisico).LogInformation($"Recebida mensagem de upload concluído para processamento. {{{LogNomesPropriedades.MessageId}}}. {LogNomesPropriedades.LocalizacaoUrl}: {{{LogNomesPropriedades.LocalizacaoUrl}}}", messageId, mensagem.LocalizacaoUrl);
 
             var processarDiagramaDto = new ProcessarDiagramaDto
             {

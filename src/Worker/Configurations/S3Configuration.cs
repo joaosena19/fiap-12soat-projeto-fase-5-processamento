@@ -12,8 +12,16 @@ public static class S3Configuration
     public static IServiceCollection AddS3(this IServiceCollection services, IConfiguration configuration)
     {
         var region = configuration["AWS:Region"] ?? throw new InvalidOperationException("Configuração AWS:Region não encontrada");
+        var regionEndpoint = RegionEndpoint.GetBySystemName(region);
 
-        services.AddSingleton<IAmazonS3>(_ => new AmazonS3Client(RegionEndpoint.GetBySystemName(region)));
+        var accessKey = configuration["AWS:AccessKeyId"];
+        var secretKey = configuration["AWS:SecretAccessKey"];
+
+        if (!string.IsNullOrEmpty(accessKey) && !string.IsNullOrEmpty(secretKey))
+            services.AddSingleton<IAmazonS3>(new AmazonS3Client(accessKey, secretKey, regionEndpoint));
+        else
+            services.AddSingleton<IAmazonS3>(new AmazonS3Client(regionEndpoint));
+
         services.AddScoped<IArquivoDiagramaDownloader, S3ArquivoDownloader>();
 
         return services;

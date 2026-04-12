@@ -12,9 +12,12 @@ public static class LogNomesPropriedades
     public const string Tamanho = "Tamanho";
     public const string Motivo = "Motivo";
     public const string Tentativas = "Tentativas";
+    public const string NomeFisico = "NomeFisico";
+    public const string LocalizacaoUrl = "LocalizacaoUrl";
     public const string Bucket = "Bucket";
     public const string Key = "Key";
     public const string MessageId = "MessageId";
     public const string DuracaoMs = "DuracaoMs";
     public const string Timestamp = "Timestamp";
+    public const string AppName = "appName";
 }
