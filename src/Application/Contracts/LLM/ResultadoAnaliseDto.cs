@@ -8,5 +8,6 @@ public record ResultadoAnaliseDto
     public List<string> RiscosArquiteturais { get; init; } = new();
     public List<string> RecomendacoesBasicas { get; init; } = new();
     public string? MotivoErro { get; init; }
+    public string? OrigemErro { get; init; }
     public int TentativasRealizadas { get; init; }
 }
