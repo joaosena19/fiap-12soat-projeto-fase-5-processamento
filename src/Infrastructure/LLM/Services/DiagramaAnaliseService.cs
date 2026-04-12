@@ -34,7 +34,7 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
         {
             cronometro.Stop();
             _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogError("LocalizacaoUrl vazia ou nula para {AnaliseDiagramaId}. A mensagem pode ter sido enviada com dados incompletos.", analiseDiagramaId);
-            return CriarResultadoFalha(new InvalidOperationException("LocalizacaoUrl não pode ser vazia."), 0, "Armazenamento");
+            return CriarResultadoFalha(new InvalidOperationException("LocalizacaoUrl não pode ser vazia."), 0, OrigemErroConstantes.Armazenamento);
         }
 
         byte[] conteudoArquivo;
@@ -52,7 +52,7 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
             _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
                    .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
                    .LogError(ex, "Falha ao baixar arquivo do armazenamento para {AnaliseDiagramaId} em {DuracaoMs}ms. ExceptionType: {ExceptionType}, Motivo: {Motivo}", analiseDiagramaId, cronometro.ElapsedMilliseconds, ex.GetType().FullName ?? ex.GetType().Name, ex.Message);
-            return CriarResultadoFalha(ex, 0, "Armazenamento");
+            return CriarResultadoFalha(ex, 0, OrigemErroConstantes.Armazenamento);
         }
 
         try
@@ -74,7 +74,7 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
                    .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
                    .ComPropriedade(LogNomesPropriedades.Tentativas, tentativasRealizadas)
                    .LogError(ex, "Falha permanente na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s) em {DuracaoMs}ms. Motivo: {Motivo}", analiseDiagramaId, tentativasRealizadas, cronometro.ElapsedMilliseconds, ex.Message);
-            return CriarResultadoFalha(ex, tentativasRealizadas, "Llm");
+            return CriarResultadoFalha(ex, tentativasRealizadas, OrigemErroConstantes.Llm);
         }
         catch (Exception ex)
         {
@@ -83,7 +83,7 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
                    .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
                    .ComPropriedade(LogNomesPropriedades.Tentativas, tentativasRealizadas)
                    .LogError(ex, "Falha ao analisar diagrama na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s) em {DuracaoMs}ms. ExceptionType: {ExceptionType}, Motivo: {Motivo}", analiseDiagramaId, tentativasRealizadas, cronometro.ElapsedMilliseconds, ex.GetType().FullName ?? ex.GetType().Name, ex.Message);
-            return CriarResultadoFalha(ex, tentativasRealizadas, "Desconhecido");
+            return CriarResultadoFalha(ex, tentativasRealizadas, OrigemErroConstantes.Desconhecido);
         }
     }
 

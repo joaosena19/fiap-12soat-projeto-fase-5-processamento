@@ -82,7 +82,7 @@ public class ProcessamentoDiagramaMessagePublisher : IProcessamentoDiagramaMessa
             CorrelationId = _correlationIdAccessor.GetCorrelationId(),
             AnaliseDiagramaId = processamento.AnaliseDiagramaId,
             Motivo = motivo,
-            OrigemErro = origemErro ?? "Processamento",
+            OrigemErro = origemErro ?? OrigemErroConstantes.Processamento,
             TentativasRealizadas = processamento.TentativasProcessamento.Valor,
             DataErro = processamento.HistoricoTemporal.DataConclusaoProcessamento ?? DateTimeOffset.UtcNow
         };
