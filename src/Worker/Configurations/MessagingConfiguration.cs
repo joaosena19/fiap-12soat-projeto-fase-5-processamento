@@ -44,6 +44,8 @@ public static class MessagingConfiguration
 
                 cfg.ReceiveEndpoint(filaUploadConcluido, e =>
                 {
+                    e.ConcurrentMessageLimit = 1;
+                    e.PrefetchCount = 1;
                     e.ConfigureConsumer<UploadDiagramaConcluidoConsumer>(context);
                 });
 
