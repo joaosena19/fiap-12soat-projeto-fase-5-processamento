@@ -1,4 +1,5 @@
 using Application.Contracts.LLM;
+using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 
@@ -6,7 +7,7 @@ namespace Infrastructure.LLM;
 
 internal static class ResilienciaAnaliseDiagramaPipelineFactory
 {
-    public static ResiliencePipeline<ResultadoAnaliseDto> Criar(ResilienciaAnaliseDiagramaOptions options)
+    public static ResiliencePipeline<ResultadoAnaliseDto> Criar(ResilienciaAnaliseDiagramaOptions options, ILogger? logger = null)
     {
         return new ResiliencePipelineBuilder<ResultadoAnaliseDto>()
             .AddRetry(new RetryStrategyOptions<ResultadoAnaliseDto>
@@ -17,7 +18,16 @@ internal static class ResilienciaAnaliseDiagramaPipelineFactory
                 UseJitter = true,
                 ShouldHandle = new PredicateBuilder<ResultadoAnaliseDto>()
                     .Handle<LlmTransientException>()
-                    .HandleResult(resultado => resultado == null)
+                    .HandleResult(resultado => resultado == null),
+                OnRetry = args =>
+                {
+                    if (logger != null && args.Outcome.Exception != null)
+                        logger.LogWarning(args.Outcome.Exception, "Retry {AttemptNumber}/{MaxRetry} na chamada LLM. Motivo: {RetryMotivo}. Próximo delay: {RetryDelay:F1}s", args.AttemptNumber + 1, options.MaxTentativas, args.Outcome.Exception.Message, args.RetryDelay.TotalSeconds);
+                    else if (logger != null)
+                        logger.LogWarning("Retry {AttemptNumber}/{MaxRetry} na chamada LLM. Resultado nulo. Próximo delay: {RetryDelay:F1}s", args.AttemptNumber + 1, options.MaxTentativas, args.RetryDelay.TotalSeconds);
+
+                    return default;
+                }
             })
             .Build();
     }

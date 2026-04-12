@@ -82,7 +82,7 @@ public class ProcessarDiagramaUseCase
 
         processamentoDiagrama.RegistrarFalha(resultado.TentativasRealizadas);
         await gateway.SalvarAsync(processamentoDiagrama);
-        await messagePublisher.PublicarProcessamentoErroAsync(processamentoDiagrama, motivo);
+        await messagePublisher.PublicarProcessamentoErroAsync(processamentoDiagrama, motivo, resultado.OrigemErro);
 
         metrics.RegistrarProcessamentoFalha(processamentoDiagrama.AnaliseDiagramaId, motivo, resultado.TentativasRealizadas);
 

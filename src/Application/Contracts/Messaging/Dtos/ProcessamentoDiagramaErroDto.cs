@@ -5,6 +5,7 @@ public record ProcessamentoDiagramaErroDto
     public string CorrelationId { get; init; } = string.Empty;
     public Guid AnaliseDiagramaId { get; init; }
     public string Motivo { get; init; } = string.Empty;
+    public string? OrigemErro { get; init; }
     public int TentativasRealizadas { get; init; }
     public DateTimeOffset DataErro { get; init; }
 }

@@ -55,20 +55,24 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
 
         try
         {
+            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogDebug("Iniciando chamada à LLM (Gemini) para {AnaliseDiagramaId}. Arquivo: {NomeFisico}, MediaType: {MediaType}", analiseDiagramaId, nomeFisico, mediaType);
+
             var resposta = await _chatClient.GetResponseAsync(mensagens, opcoes);
             var textoResposta = resposta.Text;
 
             if (textoResposta == null)
             {
-                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogWarning("A LLM retornou uma resposta nula para {AnaliseDiagramaId}", analiseDiagramaId);
+                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogWarning("A LLM retornou uma resposta nula para {AnaliseDiagramaId}. FinishReason: {FinishReason}", analiseDiagramaId, resposta.FinishReason?.ToString() ?? "null");
                 throw new LlmTransientException("A LLM retornou uma resposta nula.");
             }
+
+            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogDebug("Resposta recebida da LLM para {AnaliseDiagramaId}. Tamanho: {TamanhoResposta} chars", analiseDiagramaId, textoResposta.Length);
 
             var analise = JsonSerializer.Deserialize<LlmAnaliseResponse>(textoResposta, JsonOptions);
 
             if (analise == null)
             {
-                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogWarning("Falha ao desserializar a resposta da LLM para {AnaliseDiagramaId}", analiseDiagramaId);
+                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogWarning("Falha ao desserializar a resposta da LLM para {AnaliseDiagramaId}. Resposta bruta: {RespostaBruta}", analiseDiagramaId, textoResposta.Length > 500 ? textoResposta[..500] + "..." : textoResposta);
                 throw new LlmTransientException("Falha ao desserializar a resposta da LLM.");
             }
 
@@ -84,7 +88,8 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
         }
         catch (Exception ex)
         {
-            throw new LlmTransientException("Falha transitória ao consultar a LLM.", ex);
+            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogError(ex, "Erro na chamada à LLM (Gemini) para {AnaliseDiagramaId}. ExceptionType: {ExceptionType}, Message: {ErrorMessage}", analiseDiagramaId, ex.GetType().FullName ?? ex.GetType().Name, ex.Message);
+            throw new LlmTransientException($"Falha transitória ao consultar a LLM: {ex.Message}", ex);
         }
     }
 

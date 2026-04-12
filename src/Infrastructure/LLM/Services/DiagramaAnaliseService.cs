@@ -22,7 +22,7 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
         _client = client;
         _arquivoDiagramaDownloader = arquivoDiagramaDownloader;
         _logger = loggerFactory.CriarAppLogger<DiagramaAnaliseService>();
-        _pipeline = ResilienciaAnaliseDiagramaPipelineFactory.Criar(ResilienciaAnaliseDiagramaOptions.Criar(configuration));
+        _pipeline = ResilienciaAnaliseDiagramaPipelineFactory.Criar(ResilienciaAnaliseDiagramaOptions.Criar(configuration), loggerFactory.CreateLogger<DiagramaAnaliseService>());
     }
 
     public async Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(Guid analiseDiagramaId, string nomeFisico, string localizacaoUrl, string extensao)
@@ -32,18 +32,40 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
 
         try
         {
+            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogDebug("Iniciando download do diagrama de {LocalizacaoUrl} para {AnaliseDiagramaId}", localizacaoUrl, analiseDiagramaId);
+
             var conteudoArquivo = await BaixarConteudoArquivoAsync(localizacaoUrl);
-            var resultado = await ExecutarAnaliseComResilienciaAsync(analiseDiagramaId, nomeFisico, conteudoArquivo, extensao, tentativas => tentativasRealizadas = tentativas);
 
             _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                   .ComPropriedade(LogNomesPropriedades.Tamanho, conteudoArquivo.Length)
+                   .LogDebug("Download concluído para {AnaliseDiagramaId}. Tamanho: {Tamanho} bytes", analiseDiagramaId, conteudoArquivo.Length);
+
+            var resultado = await ExecutarAnaliseComResilienciaAsync(analiseDiagramaId, nomeFisico, conteudoArquivo, extensao, tentativas => tentativasRealizadas = tentativas);
+
+            cronometro.Stop();
+            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
                    .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
-                   .LogDebug($"Análise LLM concluída para {{{LogNomesPropriedades.AnaliseDiagramaId}}} em {{{LogNomesPropriedades.DuracaoMs}}}ms", analiseDiagramaId, cronometro.ElapsedMilliseconds);
+                   .ComPropriedade(LogNomesPropriedades.Tentativas, tentativasRealizadas)
+                   .LogInformation("Análise LLM concluída para {AnaliseDiagramaId} em {DuracaoMs}ms após {Tentativas} tentativa(s). Sucesso: {Sucesso}", analiseDiagramaId, cronometro.ElapsedMilliseconds, tentativasRealizadas, resultado.Sucesso);
 
             return resultado;
         }
+        catch (LlmPermanentException ex)
+        {
+            cronometro.Stop();
+            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                   .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
+                   .ComPropriedade(LogNomesPropriedades.Tentativas, tentativasRealizadas)
+                   .LogError(ex, "Falha permanente na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s) em {DuracaoMs}ms. Motivo: {Motivo}", analiseDiagramaId, tentativasRealizadas, cronometro.ElapsedMilliseconds, ex.Message);
+            return CriarResultadoFalha(ex, tentativasRealizadas);
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Falha ao analisar diagrama na LLM para {{{LogNomesPropriedades.AnaliseDiagramaId}}} após {{{LogNomesPropriedades.Tentativas}}} tentativa(s)", analiseDiagramaId, tentativasRealizadas);
+            cronometro.Stop();
+            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                   .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
+                   .ComPropriedade(LogNomesPropriedades.Tentativas, tentativasRealizadas)
+                   .LogError(ex, "Falha ao analisar diagrama na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s) em {DuracaoMs}ms. ExceptionType: {ExceptionType}, Motivo: {Motivo}", analiseDiagramaId, tentativasRealizadas, cronometro.ElapsedMilliseconds, ex.GetType().FullName ?? ex.GetType().Name, ex.Message);
             return CriarResultadoFalha(ex, tentativasRealizadas);
         }
     }

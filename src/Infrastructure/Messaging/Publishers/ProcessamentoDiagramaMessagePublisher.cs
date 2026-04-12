@@ -75,13 +75,14 @@ public class ProcessamentoDiagramaMessagePublisher : IProcessamentoDiagramaMessa
         }
     }
 
-    public async Task PublicarProcessamentoErroAsync(Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama processamento, string motivo)
+    public async Task PublicarProcessamentoErroAsync(Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama processamento, string motivo, string? origemErro = null)
     {
         var mensagem = new ProcessamentoDiagramaErroDto
         {
             CorrelationId = _correlationIdAccessor.GetCorrelationId(),
             AnaliseDiagramaId = processamento.AnaliseDiagramaId,
             Motivo = motivo,
+            OrigemErro = origemErro ?? "Processamento",
             TentativasRealizadas = processamento.TentativasProcessamento.Valor,
             DataErro = processamento.HistoricoTemporal.DataConclusaoProcessamento ?? DateTimeOffset.UtcNow
         };
