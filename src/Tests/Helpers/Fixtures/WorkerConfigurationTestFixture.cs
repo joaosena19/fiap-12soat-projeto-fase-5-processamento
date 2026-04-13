@@ -49,6 +49,13 @@ public class WorkerConfigurationTestFixture
         return this;
     }
 
+    public WorkerConfigurationTestFixture ComCredenciaisAwsValidas()
+    {
+        _configuracoes["AWS:AccessKeyId"] = "access-key-teste";
+        _configuracoes["AWS:SecretAccessKey"] = "secret-key-teste";
+        return this;
+    }
+
     public WorkerConfigurationTestFixture ComConfiguracaoMensageriaValida()
     {
         _configuracoes["Mensageria:Topicos:UploadDiagramaConcluido"] = "upload-diagrama-concluido";

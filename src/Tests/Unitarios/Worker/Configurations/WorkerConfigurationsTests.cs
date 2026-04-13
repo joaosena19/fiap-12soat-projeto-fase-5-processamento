@@ -139,6 +139,26 @@ public class WorkerConfigurationsTests
         scope.ServiceProvider.GetService<IArquivoDiagramaDownloader>().ShouldNotBeNull();
     }
 
+    [Fact(DisplayName = "Deve registrar serviços de S3 com credenciais explícitas quando fornecidas")]
+    [Trait("Worker", "S3Configuration")]
+    public void AddS3_DeveRegistrarDependencias_QuandoCredenciaisExplicitas()
+    {
+        // Arrange
+        var fixture = new WorkerConfigurationTestFixture()
+            .ComConfiguracaoAwsValida()
+            .ComCredenciaisAwsValidas();
+
+        // Act
+        var retorno = fixture.Services.AddS3(fixture.BuildConfiguration());
+        using var provider = fixture.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        // Assert
+        retorno.ShouldBe(fixture.Services);
+        provider.GetService<IAmazonS3>().ShouldNotBeNull();
+        scope.ServiceProvider.GetService<IArquivoDiagramaDownloader>().ShouldNotBeNull();
+    }
+
     [Fact(DisplayName = "Deve lançar exceção quando região AWS não está configurada")]
     [Trait("Worker", "S3Configuration")]
     public void AddS3_DeveLancarExcecao_QuandoRegiaoNaoConfigurada()
