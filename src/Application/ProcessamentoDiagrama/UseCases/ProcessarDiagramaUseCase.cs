@@ -30,6 +30,8 @@ public class ProcessarDiagramaUseCase
 
             if (resultado.Sucesso)
                 await TratarSucessoAsync(processamentoDiagrama, resultado, inicioProcessamento, gateway, messagePublisher, metrics, logger);
+            else if (resultado.Rejeitado)
+                await TratarRejeicaoAsync(processamentoDiagrama, resultado, gateway, messagePublisher, metrics, logger);
             else
                 await TratarFalhaAsync(processamentoDiagrama, resultado, gateway, messagePublisher, metrics, logger);
         }
@@ -87,5 +89,18 @@ public class ProcessarDiagramaUseCase
         metrics.RegistrarProcessamentoFalha(processamentoDiagrama.AnaliseDiagramaId, motivo, resultado.TentativasRealizadas);
 
         logger.ComUseCase(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamentoDiagrama.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.Tentativas, resultado.TentativasRealizadas).LogError($"Processamento finalizado com falha para {{{LogNomesPropriedades.AnaliseDiagramaId}}}. {LogNomesPropriedades.Motivo}: {{{LogNomesPropriedades.Motivo}}}. {LogNomesPropriedades.Tentativas}: {{{LogNomesPropriedades.Tentativas}}}", processamentoDiagrama.AnaliseDiagramaId, motivo, resultado.TentativasRealizadas);
+    }
+
+    private async Task TratarRejeicaoAsync(Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama processamentoDiagrama, ResultadoAnaliseDto resultado, IProcessamentoDiagramaGateway gateway, IProcessamentoDiagramaMessagePublisher messagePublisher, IMetricsService metrics, IAppLogger logger)
+    {
+        var motivo = resultado.MotivoErro ?? "Imagem rejeitada pela análise";
+
+        processamentoDiagrama.RegistrarRejeicao(resultado.TentativasRealizadas);
+        await gateway.SalvarAsync(processamentoDiagrama);
+        await messagePublisher.PublicarProcessamentoErroAsync(processamentoDiagrama, motivo, resultado.OrigemErro, rejeitado: true, podeRetentar: false);
+
+        metrics.RegistrarProcessamentoRejeitado(processamentoDiagrama.AnaliseDiagramaId, motivo, resultado.TentativasRealizadas);
+
+        logger.ComUseCase(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamentoDiagrama.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.Tentativas, resultado.TentativasRealizadas).LogWarning($"Diagrama rejeitado para {{{LogNomesPropriedades.AnaliseDiagramaId}}}. {LogNomesPropriedades.Motivo}: {{{LogNomesPropriedades.Motivo}}}. {LogNomesPropriedades.Tentativas}: {{{LogNomesPropriedades.Tentativas}}}", processamentoDiagrama.AnaliseDiagramaId, motivo, resultado.TentativasRealizadas);
     }
 }

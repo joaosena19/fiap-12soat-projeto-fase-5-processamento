@@ -59,6 +59,12 @@ public static class MockLogger
         mock.Verify(x => x.LogError(template, It.IsAny<object[]>()), Times.Exactly(vezes));
     }
 
+    public static void NaoDeveTerLogadoError(this Mock<IAppLogger> mock)
+    {
+        mock.Verify(x => x.LogError(It.IsAny<string>(), It.IsAny<object[]>()), Times.Never);
+        mock.Verify(x => x.LogError(It.IsAny<Exception>(), It.IsAny<string>(), It.IsAny<object[]>()), Times.Never);
+    }
+
     public static void DeveTerLogadoErrorComException(this Mock<IAppLogger> mock, Exception excecao, string template, int vezes = 1)
     {
         mock.Verify(x => x.LogError(excecao, template, It.IsAny<object[]>()), Times.Exactly(vezes));

@@ -76,6 +76,15 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
                    .LogError(ex, "Falha permanente na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s) em {DuracaoMs}ms. Motivo: {Motivo}", analiseDiagramaId, tentativasRealizadas, cronometro.ElapsedMilliseconds, ex.Message);
             return CriarResultadoFalha(ex, tentativasRealizadas, OrigemErroConstantes.Llm);
         }
+        catch (LlmTransientException ex)
+        {
+            cronometro.Stop();
+            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                   .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
+                   .ComPropriedade(LogNomesPropriedades.Tentativas, tentativasRealizadas)
+                   .LogError(ex, "Falha transitória na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s) em {DuracaoMs}ms. Motivo: {Motivo}", analiseDiagramaId, tentativasRealizadas, cronometro.ElapsedMilliseconds, ex.Message);
+            return CriarResultadoFalha(ex, tentativasRealizadas, OrigemErroConstantes.Llm);
+        }
         catch (Exception ex)
         {
             cronometro.Stop();

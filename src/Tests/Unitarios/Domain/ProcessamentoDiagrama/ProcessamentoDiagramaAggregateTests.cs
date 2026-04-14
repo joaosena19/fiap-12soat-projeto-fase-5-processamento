@@ -158,4 +158,50 @@ public class ProcessamentoDiagramaAggregateTests
     }
 
     #endregion
+
+    #region RegistrarRejeicao
+
+    [Fact(DisplayName = "Deve registrar rejeicao quando em processamento")]
+    [Trait("Entity", "ProcessamentoDiagrama")]
+    public void RegistrarRejeicao_DeveRegistrar_QuandoStatusEmProcessamento()
+    {
+        // Arrange
+        var processamento = new ProcessamentoDiagramaBuilder().EmProcessamento().Build();
+
+        // Act
+        processamento.RegistrarRejeicao(1);
+
+        // Assert
+        processamento.DeveEstarRejeitado(1);
+    }
+
+    [Fact(DisplayName = "Deve lancar excecao ao registrar rejeicao quando nao em processamento")]
+    [Trait("Entity", "ProcessamentoDiagrama")]
+    public void RegistrarRejeicao_DeveLancarExcecao_QuandoNaoEmProcessamento()
+    {
+        // Arrange
+        var processamento = new ProcessamentoDiagramaBuilder().Build();
+
+        // Act
+        Action acao = () => processamento.RegistrarRejeicao(1);
+
+        // Assert
+        acao.DeveLancarExcecaoDeValidacao("Só é possível registrar rejeição");
+    }
+
+    [Fact(DisplayName = "Deve lancar excecao ao iniciar processamento quando rejeitado")]
+    [Trait("Entity", "ProcessamentoDiagrama")]
+    public void IniciarProcessamento_DeveLancarExcecao_QuandoRejeitado()
+    {
+        // Arrange
+        var processamento = new ProcessamentoDiagramaBuilder().Rejeitado().Build();
+
+        // Act
+        Action acao = () => processamento.IniciarProcessamento();
+
+        // Assert
+        acao.DeveLancarExcecaoDeValidacao("Só é possível iniciar processamento");
+    }
+
+    #endregion
 }

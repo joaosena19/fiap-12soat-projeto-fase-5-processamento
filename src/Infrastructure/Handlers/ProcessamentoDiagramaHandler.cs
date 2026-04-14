@@ -32,6 +32,12 @@ public class ProcessamentoDiagramaHandler : BaseHandler
             return;
         }
 
+        if (processamentoExistente?.StatusProcessamento.Valor == StatusProcessamentoEnum.Rejeitado)
+        {
+            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogInformation("Processamento rejeitado (imagem inválida), ignorando para {AnaliseDiagramaId}", processarDiagramaDto.AnaliseDiagramaId);
+            return;
+        }
+
         if (processamentoExistente == null)
         {
             try

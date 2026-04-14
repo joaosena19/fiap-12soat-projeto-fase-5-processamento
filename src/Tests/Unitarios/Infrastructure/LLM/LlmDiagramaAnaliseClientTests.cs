@@ -50,8 +50,7 @@ public class LlmDiagramaAnaliseClientTests
         var resultado = await _fixture.AnalisarAsync();
 
         // Assert
-        resultado.Sucesso.ShouldBeFalse();
-        resultado.MotivoErro.ShouldBe("Imagem sem diagrama");
+        resultado.DeveSerRejeicao("Imagem sem diagrama");
         resultado.TentativasRealizadas.ShouldBe(1);
     }
 

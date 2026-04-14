@@ -8,6 +8,9 @@ public class ResultadoAnaliseDtoBuilder
     private List<string> _riscosArquiteturais = ["Ponto unico de falha no API Gateway"];
     private List<string> _recomendacoesBasicas = ["Implementar circuit breaker"];
     private string? _motivoErro;
+    private string? _origemErro;
+    private bool _rejeitado;
+    private bool _podeRetentar = true;
     private int _tentativasRealizadas = 1;
 
     public ResultadoAnaliseDtoBuilder Sucesso()
@@ -39,6 +42,21 @@ public class ResultadoAnaliseDtoBuilder
         return this;
     }
 
+    public ResultadoAnaliseDtoBuilder ComRejeicao(string motivo)
+    {
+        _sucesso = false;
+        _descricaoAnalise = null;
+        _motivoErro = motivo;
+        _origemErro = global::Shared.Constants.OrigemErroConstantes.LlmValidacao;
+        _rejeitado = true;
+        _podeRetentar = false;
+        _tentativasRealizadas = 1;
+        _componentesIdentificados = [];
+        _riscosArquiteturais = [];
+        _recomendacoesBasicas = [];
+        return this;
+    }
+
     public ResultadoAnaliseDtoBuilder ComTentativas(int tentativas)
     {
         _tentativasRealizadas = tentativas;
@@ -55,6 +73,9 @@ public class ResultadoAnaliseDtoBuilder
             RiscosArquiteturais = _riscosArquiteturais,
             RecomendacoesBasicas = _recomendacoesBasicas,
             MotivoErro = _motivoErro,
+            OrigemErro = _origemErro,
+            Rejeitado = _rejeitado,
+            PodeRetentar = _podeRetentar,
             TentativasRealizadas = _tentativasRealizadas
         };
     }
