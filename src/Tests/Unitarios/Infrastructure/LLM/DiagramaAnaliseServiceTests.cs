@@ -54,5 +54,23 @@ public class DiagramaAnaliseServiceTests
 
         // Assert
         resultado.DeveSerFalha("Timeout na LLM", 3);
+        resultado.DeveSerFalhaComOrigem(global::Shared.Constants.OrigemErroConstantes.Llm, 3);
+    }
+
+    [Fact(DisplayName = "Deve retornar origem desconhecido quando exceção genérica não é LLM")]
+    [Trait("Infrastructure", "DiagramaAnaliseService")]
+    public async Task AnalisarDiagramaAsync_DeveRetornarOrigemDesconhecido_QuandoExcecaoGenericaNaoLlm()
+    {
+        // Arrange
+        var fixture = new DiagramaAnaliseServiceTestFixture(maxTentativas: 1, delaySegundos: 0);
+
+        fixture.DownloaderMock.AoBaixar().Retorna([0x01, 0x02]);
+        fixture.ClienteLlmMock.AoAnalisar().LancaExcecao(new NullReferenceException("Referência nula"));
+
+        // Act
+        var resultado = await fixture.Service.AnalisarDiagramaAsync(Guid.NewGuid(), "arquivo.png", "https://bucket/arquivo.png", ".png");
+
+        // Assert
+        resultado.DeveSerFalhaComOrigem(global::Shared.Constants.OrigemErroConstantes.Desconhecido, 1);
     }
 }

@@ -75,7 +75,7 @@ public class ProcessamentoDiagramaMessagePublisher : IProcessamentoDiagramaMessa
         }
     }
 
-    public async Task PublicarProcessamentoErroAsync(Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama processamento, string motivo, string? origemErro = null)
+    public async Task PublicarProcessamentoErroAsync(Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama processamento, string motivo, string? origemErro = null, bool rejeitado = false, bool podeRetentar = true)
     {
         var mensagem = new ProcessamentoDiagramaErroDto
         {
@@ -84,6 +84,8 @@ public class ProcessamentoDiagramaMessagePublisher : IProcessamentoDiagramaMessa
             Motivo = motivo,
             OrigemErro = origemErro ?? OrigemErroConstantes.Processamento,
             TentativasRealizadas = processamento.TentativasProcessamento.Valor,
+            Rejeitado = rejeitado,
+            PodeRetentar = podeRetentar,
             DataErro = processamento.HistoricoTemporal.DataConclusaoProcessamento ?? DateTimeOffset.UtcNow
         };
 

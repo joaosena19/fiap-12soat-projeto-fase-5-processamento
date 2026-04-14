@@ -73,4 +73,14 @@ public class ProcessamentoDiagrama
         StatusProcessamento = new StatusProcessamento(StatusProcessamentoEnum.Falha);
         HistoricoTemporal = HistoricoTemporal.MarcarConclusaoProcessamento();
     }
+
+    public void RegistrarRejeicao(int tentativasRealizadas)
+    {
+        if (StatusProcessamento.Valor != StatusProcessamentoEnum.EmProcessamento)
+            throw new DomainException("Só é possível registrar rejeição quando o status é EmProcessamento");
+
+        TentativasProcessamento = new TentativasProcessamento(tentativasRealizadas);
+        StatusProcessamento = new StatusProcessamento(StatusProcessamentoEnum.Rejeitado);
+        HistoricoTemporal = HistoricoTemporal.MarcarConclusaoProcessamento();
+    }
 }

@@ -6,7 +6,7 @@ public static class ProcessamentoDiagramaMessagePublisherMockExtensions
     {
         mock.Setup(x => x.PublicarProcessamentoIniciadoAsync(It.IsAny<ProcessamentoDiagramaAggregate>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.CompletedTask);
         mock.Setup(x => x.PublicarDiagramaAnalisadoAsync(It.IsAny<ProcessamentoDiagramaAggregate>())).Returns(Task.CompletedTask);
-        mock.Setup(x => x.PublicarProcessamentoErroAsync(It.IsAny<ProcessamentoDiagramaAggregate>(), It.IsAny<string>(), It.IsAny<string?>())).Returns(Task.CompletedTask);
+        mock.Setup(x => x.PublicarProcessamentoErroAsync(It.IsAny<ProcessamentoDiagramaAggregate>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<bool>())).Returns(Task.CompletedTask);
     }
 
     public static void DeveTerPublicadoProcessamentoIniciado(this Mock<IProcessamentoDiagramaMessagePublisher> mock)
@@ -31,16 +31,26 @@ public static class ProcessamentoDiagramaMessagePublisherMockExtensions
 
     public static void DeveTerPublicadoProcessamentoErro(this Mock<IProcessamentoDiagramaMessagePublisher> mock)
     {
-        mock.Verify(x => x.PublicarProcessamentoErroAsync(It.IsAny<ProcessamentoDiagramaAggregate>(), It.IsAny<string>(), It.IsAny<string?>()), Times.AtLeastOnce);
+        mock.Verify(x => x.PublicarProcessamentoErroAsync(It.IsAny<ProcessamentoDiagramaAggregate>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.AtLeastOnce);
     }
 
     public static void DeveTerPublicadoProcessamentoErroComMensagem(this Mock<IProcessamentoDiagramaMessagePublisher> mock, string mensagem)
     {
-        mock.Verify(x => x.PublicarProcessamentoErroAsync(It.IsAny<ProcessamentoDiagramaAggregate>(), mensagem, It.IsAny<string?>()), Times.Once);
+        mock.Verify(x => x.PublicarProcessamentoErroAsync(It.IsAny<ProcessamentoDiagramaAggregate>(), mensagem, It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Once);
+    }
+
+    public static void DeveTerPublicadoProcessamentoErroComRejeicao(this Mock<IProcessamentoDiagramaMessagePublisher> mock)
+    {
+        mock.Verify(x => x.PublicarProcessamentoErroAsync(It.IsAny<ProcessamentoDiagramaAggregate>(), It.IsAny<string>(), It.IsAny<string?>(), true, It.IsAny<bool>()), Times.Once);
+    }
+
+    public static void DeveTerPublicadoProcessamentoErroSemRejeicao(this Mock<IProcessamentoDiagramaMessagePublisher> mock)
+    {
+        mock.Verify(x => x.PublicarProcessamentoErroAsync(It.IsAny<ProcessamentoDiagramaAggregate>(), It.IsAny<string>(), It.IsAny<string?>(), false, It.IsAny<bool>()), Times.AtLeastOnce);
     }
 
     public static void NaoDeveTerPublicadoProcessamentoErro(this Mock<IProcessamentoDiagramaMessagePublisher> mock)
     {
-        mock.Verify(x => x.PublicarProcessamentoErroAsync(It.IsAny<ProcessamentoDiagramaAggregate>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
+        mock.Verify(x => x.PublicarProcessamentoErroAsync(It.IsAny<ProcessamentoDiagramaAggregate>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never);
     }
 }

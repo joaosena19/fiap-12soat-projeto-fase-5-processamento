@@ -48,4 +48,12 @@ public static class ProcessamentoDiagramaAssertionExtensions
         aggregate.NaoDeveConterAnaliseResultado();
         aggregate.HistoricoTemporal.DataConclusaoProcessamento.ShouldNotBeNull();
     }
+
+    public static void DeveEstarRejeitado(this ProcessamentoDiagramaAggregate aggregate, int tentativasEsperadas)
+    {
+        aggregate.DeveEstarComStatus(StatusProcessamentoEnum.Rejeitado);
+        aggregate.TentativasProcessamento.Valor.ShouldBe(tentativasEsperadas);
+        aggregate.NaoDeveConterAnaliseResultado();
+        aggregate.HistoricoTemporal.DataConclusaoProcessamento.ShouldNotBeNull();
+    }
 }

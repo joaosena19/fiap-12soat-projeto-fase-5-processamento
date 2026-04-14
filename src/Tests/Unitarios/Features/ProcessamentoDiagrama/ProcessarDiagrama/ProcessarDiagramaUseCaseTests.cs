@@ -54,12 +54,39 @@ public class ProcessarDiagramaUseCaseTests
         // Assert
         _fixture.GatewayMock.DeveTerSalvo(2);
         _fixture.MessagePublisherMock.DeveTerPublicadoProcessamentoIniciado();
-        _fixture.MessagePublisherMock.DeveTerPublicadoProcessamentoErro();
+        _fixture.MessagePublisherMock.DeveTerPublicadoProcessamentoErroSemRejeicao();
         _fixture.MessagePublisherMock.NaoDeveTerPublicadoDiagramaAnalisado();
         _fixture.MetricsMock.DeveTerRegistradoProcessamentoIniciado();
         _fixture.MetricsMock.DeveTerRegistradoProcessamentoFalha();
         _fixture.MetricsMock.NaoDeveTerRegistradoProcessamentoConcluido();
         _fixture.LoggerMock.DeveTerLogadoError();
+    }
+
+    [Fact(DisplayName = "Deve registrar rejeicao com warning quando imagem nao eh diagrama")]
+    [Trait("UseCase", "ProcessarDiagrama")]
+    public async Task ExecutarAsync_DeveRegistrarRejeicao_QuandoImagemNaoEhDiagrama()
+    {
+        // Arrange
+        var dto = new ProcessarDiagramaDtoBuilder().Build();
+        var processamento = new ProcessamentoDiagramaBuilder().ComAnaliseDiagramaId(dto.AnaliseDiagramaId).Build();
+        var resultado = new ResultadoAnaliseDtoBuilder().ComRejeicao("A imagem não é diagrama").Build();
+
+        _fixture.GatewayMock.AoObterPorAnaliseDiagramaId(dto.AnaliseDiagramaId).Retorna(processamento);
+        _fixture.LlmServiceMock.AoAnalisar().Retorna(resultado);
+
+        // Act
+        await _fixture.ExecutarAsync(dto);
+
+        // Assert
+        _fixture.GatewayMock.DeveTerSalvo(2);
+        _fixture.MessagePublisherMock.DeveTerPublicadoProcessamentoIniciado();
+        _fixture.MessagePublisherMock.DeveTerPublicadoProcessamentoErroComRejeicao();
+        _fixture.MessagePublisherMock.NaoDeveTerPublicadoDiagramaAnalisado();
+        _fixture.MetricsMock.DeveTerRegistradoProcessamentoIniciado();
+        _fixture.MetricsMock.DeveTerRegistradoProcessamentoFalha();
+        _fixture.MetricsMock.NaoDeveTerRegistradoProcessamentoConcluido();
+        _fixture.LoggerMock.DeveTerLogadoWarning();
+        _fixture.LoggerMock.NaoDeveTerLogadoError();
     }
 
     [Fact(DisplayName = "Deve usar motivo padrão quando llm retorna falha sem motivo")]

@@ -10,4 +10,6 @@ public record ResultadoAnaliseDto
     public string? MotivoErro { get; init; }
     public string? OrigemErro { get; init; }
     public int TentativasRealizadas { get; init; }
+    public bool Rejeitado { get; init; }
+    public bool PodeRetentar { get; init; } = true;
 }

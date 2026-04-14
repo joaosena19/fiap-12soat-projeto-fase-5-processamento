@@ -5,5 +5,6 @@ public enum StatusProcessamentoEnum
     AguardandoProcessamento,
     EmProcessamento,
     Concluido,
-    Falha
+    Falha,
+    Rejeitado
 }

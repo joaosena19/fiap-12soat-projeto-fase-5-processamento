@@ -8,6 +8,7 @@ public class ProcessamentoDiagramaBuilder
     private bool _emProcessamento;
     private bool _concluido;
     private bool _falha;
+    private bool _rejeitado;
     private int _tentativasFalha = 1;
 
     public ProcessamentoDiagramaBuilder ComAnaliseDiagramaId(Guid analiseDiagramaId)
@@ -38,6 +39,17 @@ public class ProcessamentoDiagramaBuilder
         _tentativasFalha = tentativas;
         _emProcessamento = false;
         _concluido = false;
+        _rejeitado = false;
+        return this;
+    }
+
+    public ProcessamentoDiagramaBuilder Rejeitado(int tentativas = 1)
+    {
+        _rejeitado = true;
+        _tentativasFalha = tentativas;
+        _emProcessamento = false;
+        _concluido = false;
+        _falha = false;
         return this;
     }
 
@@ -61,6 +73,13 @@ public class ProcessamentoDiagramaBuilder
         {
             processamento.IniciarProcessamento();
             processamento.RegistrarFalha(_tentativasFalha);
+            return processamento;
+        }
+
+        if (_rejeitado)
+        {
+            processamento.IniciarProcessamento();
+            processamento.RegistrarRejeicao(_tentativasFalha);
             return processamento;
         }
 

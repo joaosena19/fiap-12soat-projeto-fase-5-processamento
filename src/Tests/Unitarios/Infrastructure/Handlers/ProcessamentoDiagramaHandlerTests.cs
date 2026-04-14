@@ -93,4 +93,23 @@ public class ProcessamentoDiagramaHandlerTests
         _fixture.LlmServiceMock.DeveTerAnalisado();
         _fixture.MessagePublisherMock.DeveTerPublicadoDiagramaAnalisado();
     }
+
+    [Fact(DisplayName = "Deve ignorar mensagem quando processamento ja foi rejeitado")]
+    [Trait("Handler", "ProcessamentoDiagramaHandler")]
+    public async Task IniciarProcessamentoAsync_DeveIgnorar_QuandoStatusRejeitado()
+    {
+        // Arrange
+        var dto = new ProcessarDiagramaDtoBuilder().Build();
+        var processamento = new ProcessamentoDiagramaBuilder().ComAnaliseDiagramaId(dto.AnaliseDiagramaId).Rejeitado().Build();
+
+        _fixture.GatewayMock.AoObterPorAnaliseDiagramaId(dto.AnaliseDiagramaId).Retorna(processamento);
+
+        // Act
+        await _fixture.IniciarProcessamentoAsync(dto);
+
+        // Assert
+        _fixture.LlmServiceMock.NaoDeveTerAnalisado();
+        _fixture.GatewayMock.NaoDeveTerSalvo();
+        _fixture.LoggerMock.DeveTerLogadoInformation();
+    }
 }

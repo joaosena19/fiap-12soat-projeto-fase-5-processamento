@@ -104,7 +104,10 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
             {
                 Sucesso = false,
                 MotivoErro = analise.MotivoInvalidez,
-                TentativasRealizadas = 1
+                TentativasRealizadas = 1,
+                OrigemErro = OrigemErroConstantes.LlmValidacao,
+                Rejeitado = true,
+                PodeRetentar = false
             };
         }
 
