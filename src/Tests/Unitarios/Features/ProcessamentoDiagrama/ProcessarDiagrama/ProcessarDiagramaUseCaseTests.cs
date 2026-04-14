@@ -57,8 +57,8 @@ public class ProcessarDiagramaUseCaseTests
         _fixture.MessagePublisherMock.DeveTerPublicadoProcessamentoErroSemRejeicao();
         _fixture.MessagePublisherMock.NaoDeveTerPublicadoDiagramaAnalisado();
         _fixture.MetricsMock.DeveTerRegistradoProcessamentoIniciado();
-        _fixture.MetricsMock.DeveTerRegistradoProcessamentoRejeitado();
-        _fixture.MetricsMock.NaoDeveTerRegistradoProcessamentoFalha();
+        _fixture.MetricsMock.DeveTerRegistradoProcessamentoFalha();
+        _fixture.MetricsMock.NaoDeveTerRegistradoProcessamentoRejeitado();
         _fixture.MetricsMock.NaoDeveTerRegistradoProcessamentoConcluido();
         _fixture.LoggerMock.DeveTerLogadoError();
     }
