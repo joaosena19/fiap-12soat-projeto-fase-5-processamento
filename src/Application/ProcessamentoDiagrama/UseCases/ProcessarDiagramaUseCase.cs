@@ -23,6 +23,8 @@ public class ProcessarDiagramaUseCase
 
             var processamentoDiagrama = await ObterProcessamentoValidadoAsync(analiseDiagramaId, gateway);
 
+            ValidarDadosObrigatorios(processarDiagramaDto, logger);
+
             await SinalizarInicioProcessamentoAsync(processamentoDiagrama, processarDiagramaDto, gateway, messagePublisher, metrics);
 
             var inicioProcessamento = DateTimeOffset.UtcNow;
@@ -55,6 +57,15 @@ public class ProcessarDiagramaUseCase
             throw new DomainException("Processamento não encontrado", ErrorType.ResourceNotFound);
 
         return processamentoDiagrama;
+    }
+
+    private static void ValidarDadosObrigatorios(ProcessarDiagramaDto dto, IAppLogger logger)
+    {
+        if (string.IsNullOrWhiteSpace(dto.LocalizacaoUrl))
+        {
+            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, dto.AnaliseDiagramaId).LogError("LocalizacaoUrl vazia ou nula para {AnaliseDiagramaId}. A mensagem foi recebida com dados incompletos.", dto.AnaliseDiagramaId);
+            throw new DomainException("LocalizacaoUrl não pode ser vazia. A mensagem foi recebida com dados incompletos.", ErrorType.InvalidInput);
+        }
     }
 
     private async Task SinalizarInicioProcessamentoAsync(Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama processamentoDiagrama, ProcessarDiagramaDto dto, IProcessamentoDiagramaGateway gateway, IProcessamentoDiagramaMessagePublisher messagePublisher, IMetricsService metrics)

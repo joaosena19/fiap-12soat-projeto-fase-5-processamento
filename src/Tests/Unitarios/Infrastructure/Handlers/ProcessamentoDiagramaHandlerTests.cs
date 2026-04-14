@@ -112,4 +112,39 @@ public class ProcessamentoDiagramaHandlerTests
         _fixture.GatewayMock.NaoDeveTerSalvo();
         _fixture.LoggerMock.DeveTerLogadoInformation();
     }
+
+    [Fact(DisplayName = "Deve ignorar mensagem quando LocalizacaoUrl estiver vazia")]
+    [Trait("Handler", "ProcessamentoDiagramaHandler")]
+    public async Task IniciarProcessamentoAsync_DeveIgnorar_QuandoLocalizacaoUrlVazia()
+    {
+        // Arrange
+        var dto = new ProcessarDiagramaDtoBuilder().SemLocalizacaoUrl().Build();
+
+        // Act
+        await _fixture.IniciarProcessamentoAsync(dto);
+
+        // Assert
+        _fixture.LlmServiceMock.NaoDeveTerAnalisado();
+        _fixture.GatewayMock.NaoDeveTerSalvo();
+        _fixture.LoggerMock.DeveTerLogadoWarning();
+    }
+
+    [Fact(DisplayName = "Deve ignorar mensagem com LocalizacaoUrl vazia mesmo quando processamento existir com falha")]
+    [Trait("Handler", "ProcessamentoDiagramaHandler")]
+    public async Task IniciarProcessamentoAsync_DeveIgnorar_QuandoLocalizacaoUrlVaziaEStatusFalha()
+    {
+        // Arrange
+        var dto = new ProcessarDiagramaDtoBuilder().SemLocalizacaoUrl().Build();
+        var processamento = new ProcessamentoDiagramaBuilder().ComAnaliseDiagramaId(dto.AnaliseDiagramaId).ComFalha(2).Build();
+
+        _fixture.GatewayMock.AoObterPorAnaliseDiagramaId(dto.AnaliseDiagramaId).Retorna(processamento);
+
+        // Act
+        await _fixture.IniciarProcessamentoAsync(dto);
+
+        // Assert
+        _fixture.LlmServiceMock.NaoDeveTerAnalisado();
+        _fixture.GatewayMock.NaoDeveTerSalvo();
+        _fixture.LoggerMock.DeveTerLogadoWarning();
+    }
 }

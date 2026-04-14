@@ -147,4 +147,25 @@ public class ProcessarDiagramaUseCaseTests
         // Assert
         _fixture.LoggerMock.DeveTerLogadoErrorComException();
     }
+
+    [Fact(DisplayName = "Deve lancar excecao e nao publicar iniciado quando LocalizacaoUrl estiver vazia")]
+    [Trait("UseCase", "ProcessarDiagrama")]
+    public async Task ExecutarAsync_DeveLancarExcecao_QuandoLocalizacaoUrlVazia()
+    {
+        // Arrange
+        var dto = new ProcessarDiagramaDtoBuilder().SemLocalizacaoUrl().Build();
+        var processamento = new ProcessamentoDiagramaBuilder().ComAnaliseDiagramaId(dto.AnaliseDiagramaId).Build();
+
+        _fixture.GatewayMock.AoObterPorAnaliseDiagramaId(dto.AnaliseDiagramaId).Retorna(processamento);
+
+        // Act
+        var excecao = await Should.ThrowAsync<DomainException>(async () => await _fixture.ExecutarAsync(dto));
+
+        // Assert
+        excecao.ErrorType.ShouldBe(ErrorType.InvalidInput);
+        _fixture.MessagePublisherMock.NaoDeveTerPublicadoProcessamentoIniciado();
+        _fixture.LlmServiceMock.NaoDeveTerAnalisado();
+        _fixture.GatewayMock.NaoDeveTerSalvo();
+        _fixture.LoggerMock.DeveTerLogadoErrorComException();
+    }
 }
