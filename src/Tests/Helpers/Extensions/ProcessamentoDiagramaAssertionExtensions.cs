@@ -56,4 +56,14 @@ public static class ProcessamentoDiagramaAssertionExtensions
         aggregate.NaoDeveConterAnaliseResultado();
         aggregate.HistoricoTemporal.DataConclusaoProcessamento.ShouldNotBeNull();
     }
+
+    public static void DeveConterDadosOrigem(this ProcessamentoDiagramaAggregate aggregate)
+    {
+        aggregate.DadosOrigem.ShouldNotBeNull();
+    }
+
+    public static void NaoDeveConterDadosOrigem(this ProcessamentoDiagramaAggregate aggregate)
+    {
+        aggregate.DadosOrigem.ShouldBeNull();
+    }
 }

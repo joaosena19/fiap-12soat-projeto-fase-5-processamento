@@ -113,9 +113,9 @@ public class ProcessamentoDiagramaHandlerTests
         _fixture.LoggerMock.DeveTerLogadoInformation();
     }
 
-    [Fact(DisplayName = "Deve ignorar mensagem quando LocalizacaoUrl estiver vazia")]
+    [Fact(DisplayName = "Deve ignorar mensagem quando LocalizacaoUrl estiver vazia e nao existir processamento anterior")]
     [Trait("Handler", "ProcessamentoDiagramaHandler")]
-    public async Task IniciarProcessamentoAsync_DeveIgnorar_QuandoLocalizacaoUrlVazia()
+    public async Task IniciarProcessamentoAsync_DeveIgnorar_QuandoLocalizacaoUrlVaziaENaoExisteProcessamento()
     {
         // Arrange
         var dto = new ProcessarDiagramaDtoBuilder().SemLocalizacaoUrl().Build();
@@ -129,13 +129,41 @@ public class ProcessamentoDiagramaHandlerTests
         _fixture.LoggerMock.DeveTerLogadoWarning();
     }
 
-    [Fact(DisplayName = "Deve ignorar mensagem com LocalizacaoUrl vazia mesmo quando processamento existir com falha")]
+    [Fact(DisplayName = "Deve recuperar LocalizacaoUrl do banco e processar quando retry com url vazia e dados de origem existentes")]
     [Trait("Handler", "ProcessamentoDiagramaHandler")]
-    public async Task IniciarProcessamentoAsync_DeveIgnorar_QuandoLocalizacaoUrlVaziaEStatusFalha()
+    public async Task IniciarProcessamentoAsync_DeveRecuperarUrlDoBanco_QuandoRetryComUrlVaziaEDadosOrigemExistem()
     {
         // Arrange
         var dto = new ProcessarDiagramaDtoBuilder().SemLocalizacaoUrl().Build();
-        var processamento = new ProcessamentoDiagramaBuilder().ComAnaliseDiagramaId(dto.AnaliseDiagramaId).ComFalha(2).Build();
+        var processamento = new ProcessamentoDiagramaBuilder()
+            .ComAnaliseDiagramaId(dto.AnaliseDiagramaId)
+            .ComDadosOrigem()
+            .ComFalha(2)
+            .Build();
+        var resultado = new ResultadoAnaliseDtoBuilder().Sucesso().Build();
+
+        _fixture.GatewayMock.AoObterPorAnaliseDiagramaId(dto.AnaliseDiagramaId).Retorna(processamento);
+        _fixture.LlmServiceMock.AoAnalisar().Retorna(resultado);
+
+        // Act
+        await _fixture.IniciarProcessamentoAsync(dto);
+
+        // Assert
+        _fixture.LlmServiceMock.DeveTerAnalisado();
+        _fixture.GatewayMock.DeveTerSalvo(2);
+        _fixture.LoggerMock.DeveTerLogadoWarning();
+    }
+
+    [Fact(DisplayName = "Deve ignorar mensagem quando retry com url vazia e sem dados de origem no banco")]
+    [Trait("Handler", "ProcessamentoDiagramaHandler")]
+    public async Task IniciarProcessamentoAsync_DeveIgnorar_QuandoRetryComUrlVaziaESemDadosOrigem()
+    {
+        // Arrange
+        var dto = new ProcessarDiagramaDtoBuilder().SemLocalizacaoUrl().Build();
+        var processamento = new ProcessamentoDiagramaBuilder()
+            .ComAnaliseDiagramaId(dto.AnaliseDiagramaId)
+            .ComFalha(2)
+            .Build();
 
         _fixture.GatewayMock.AoObterPorAnaliseDiagramaId(dto.AnaliseDiagramaId).Retorna(processamento);
 
@@ -146,5 +174,29 @@ public class ProcessamentoDiagramaHandlerTests
         _fixture.LlmServiceMock.NaoDeveTerAnalisado();
         _fixture.GatewayMock.NaoDeveTerSalvo();
         _fixture.LoggerMock.DeveTerLogadoWarning();
+    }
+
+    [Fact(DisplayName = "Deve persistir dados de origem quando criar registro inicial")]
+    [Trait("Handler", "ProcessamentoDiagramaHandler")]
+    public async Task IniciarProcessamentoAsync_DevePersistirDadosOrigem_QuandoCriarRegistroInicial()
+    {
+        // Arrange
+        var dto = new ProcessarDiagramaDtoBuilder().Build();
+        ProcessamentoDiagramaAggregate? processamentoSalvo = null;
+
+        _fixture.GatewayMock.AoObterPorAnaliseDiagramaIdSequencial(dto.AnaliseDiagramaId)
+            .RetornaPrimeiro(null, () => processamentoSalvo!);
+
+        _fixture.GatewayMock.AoSalvar().ComCallback(p => processamentoSalvo = p);
+        _fixture.LlmServiceMock.AoAnalisar().Retorna(new ResultadoAnaliseDtoBuilder().Sucesso().Build());
+
+        // Act
+        await _fixture.IniciarProcessamentoAsync(dto);
+
+        // Assert
+        processamentoSalvo.ShouldNotBeNull();
+        processamentoSalvo.DeveConterDadosOrigem();
+        processamentoSalvo.DadosOrigem!.LocalizacaoUrl.Valor.ShouldBe(dto.LocalizacaoUrl);
+        processamentoSalvo.DadosOrigem.NomeFisico.Valor.ShouldBe(dto.NomeFisico);
     }
 }

@@ -10,6 +10,11 @@ public class ProcessamentoDiagramaBuilder
     private bool _falha;
     private bool _rejeitado;
     private int _tentativasFalha = 1;
+    private bool _comDadosOrigem;
+    private string _localizacaoUrl = "s3://bucket/diagrama-123.png";
+    private string _nomeFisico = "diagrama-123.png";
+    private string _nomeOriginal = "diagrama-arquitetura.png";
+    private string _extensao = "png";
 
     public ProcessamentoDiagramaBuilder ComAnaliseDiagramaId(Guid analiseDiagramaId)
     {
@@ -53,9 +58,22 @@ public class ProcessamentoDiagramaBuilder
         return this;
     }
 
+    public ProcessamentoDiagramaBuilder ComDadosOrigem(string? localizacaoUrl = null, string? nomeFisico = null, string? nomeOriginal = null, string? extensao = null)
+    {
+        _comDadosOrigem = true;
+        if (localizacaoUrl != null) _localizacaoUrl = localizacaoUrl;
+        if (nomeFisico != null) _nomeFisico = nomeFisico;
+        if (nomeOriginal != null) _nomeOriginal = nomeOriginal;
+        if (extensao != null) _extensao = extensao;
+        return this;
+    }
+
     public ProcessamentoDiagrama Build()
     {
         var processamento = ProcessamentoDiagrama.Criar(_analiseDiagramaId);
+
+        if (_comDadosOrigem)
+            processamento.RegistrarDadosOrigem(_localizacaoUrl, _nomeFisico, _nomeOriginal, _extensao);
 
         if (_concluido)
         {

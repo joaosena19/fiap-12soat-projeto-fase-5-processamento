@@ -38,6 +38,8 @@ public class ProcessamentoDiagramaHandler : BaseHandler
             return;
         }
 
+        processarDiagramaDto = TentarRecuperarLocalizacaoUrl(processarDiagramaDto, processamentoExistente, logger);
+
         if (string.IsNullOrWhiteSpace(processarDiagramaDto.LocalizacaoUrl))
         {
             logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogWarning("Mensagem com LocalizacaoUrl vazia para {AnaliseDiagramaId}, ignorando mensagem com dados incompletos", processarDiagramaDto.AnaliseDiagramaId);
@@ -49,6 +51,7 @@ public class ProcessamentoDiagramaHandler : BaseHandler
             try
             {
                 var processamento = Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama.Criar(processarDiagramaDto.AnaliseDiagramaId);
+                processamento.RegistrarDadosOrigem(processarDiagramaDto.LocalizacaoUrl, processarDiagramaDto.NomeFisico, processarDiagramaDto.NomeOriginal, processarDiagramaDto.Extensao);
                 await gateway.SalvarAsync(processamento);
                 logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogDebug("Registro inicial de processamento criado para {AnaliseDiagramaId}", processarDiagramaDto.AnaliseDiagramaId);
             }
@@ -60,6 +63,30 @@ public class ProcessamentoDiagramaHandler : BaseHandler
         }
 
         await ProcessarDiagramaAsync(processarDiagramaDto, gateway, llmService, messagePublisher, metrics);
+    }
+
+    private static ProcessarDiagramaDto TentarRecuperarLocalizacaoUrl(ProcessarDiagramaDto dto, Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama? processamentoExistente, IAppLogger logger)
+    {
+        if (!string.IsNullOrWhiteSpace(dto.LocalizacaoUrl))
+            return dto;
+
+        if (processamentoExistente?.DadosOrigem == null)
+            return dto;
+
+        var urlRecuperada = processamentoExistente.DadosOrigem.LocalizacaoUrl.Valor;
+
+        if (string.IsNullOrWhiteSpace(urlRecuperada))
+            return dto;
+
+        logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, dto.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.LocalizacaoUrl, urlRecuperada).LogWarning("LocalizacaoUrl recuperada do banco de dados para retry de {AnaliseDiagramaId}. {LocalizacaoUrl}: {LocalizacaoUrl}", dto.AnaliseDiagramaId, urlRecuperada);
+
+        return dto with
+        {
+            LocalizacaoUrl = urlRecuperada,
+            NomeFisico = string.IsNullOrWhiteSpace(dto.NomeFisico) ? processamentoExistente.DadosOrigem.NomeFisico.Valor : dto.NomeFisico,
+            NomeOriginal = string.IsNullOrWhiteSpace(dto.NomeOriginal) ? processamentoExistente.DadosOrigem.NomeOriginal.Valor : dto.NomeOriginal,
+            Extensao = string.IsNullOrWhiteSpace(dto.Extensao) ? processamentoExistente.DadosOrigem.Extensao.Valor : dto.Extensao
+        };
     }
 
     public async Task ProcessarDiagramaAsync(ProcessarDiagramaDto processarDiagramaDto, IProcessamentoDiagramaGateway gateway, IDiagramaAnaliseService llmService, IProcessamentoDiagramaMessagePublisher messagePublisher, IMetricsService metrics)

@@ -6,6 +6,8 @@ public static class ProcessamentoDiagramaGatewayMockExtensions
 
     public static ObterPorAnaliseDiagramaIdSequencialSetup AoObterPorAnaliseDiagramaIdSequencial(this Mock<IProcessamentoDiagramaGateway> mock, Guid analiseDiagramaId) => new(mock, analiseDiagramaId);
 
+    public static SalvarSetup AoSalvar(this Mock<IProcessamentoDiagramaGateway> mock) => new(mock);
+
     public static void DeveTerSalvo(this Mock<IProcessamentoDiagramaGateway> mock)
     {
         mock.Verify(x => x.SalvarAsync(It.IsAny<ProcessamentoDiagramaAggregate>()), Times.AtLeastOnce);
@@ -65,6 +67,30 @@ public static class ProcessamentoDiagramaGatewayMockExtensions
             _mock.SetupSequence(x => x.ObterPorAnaliseDiagramaIdAsync(_analiseDiagramaId))
                 .ReturnsAsync(primeiro)
                 .ReturnsAsync(segundo);
+        }
+
+        public void RetornaPrimeiro(ProcessamentoDiagramaAggregate? primeiro, Func<ProcessamentoDiagramaAggregate> segundoFactory)
+        {
+            var chamadas = 0;
+            _mock.Setup(x => x.ObterPorAnaliseDiagramaIdAsync(_analiseDiagramaId))
+                .ReturnsAsync(() => chamadas++ == 0 ? primeiro : segundoFactory());
+        }
+    }
+
+    public class SalvarSetup
+    {
+        private readonly Mock<IProcessamentoDiagramaGateway> _mock;
+
+        public SalvarSetup(Mock<IProcessamentoDiagramaGateway> mock)
+        {
+            _mock = mock;
+        }
+
+        public void ComCallback(Action<ProcessamentoDiagramaAggregate> callback)
+        {
+            _mock.Setup(x => x.SalvarAsync(It.IsAny<ProcessamentoDiagramaAggregate>()))
+                .Callback<ProcessamentoDiagramaAggregate>(callback)
+                .ReturnsAsync((ProcessamentoDiagramaAggregate p) => p);
         }
     }
 }

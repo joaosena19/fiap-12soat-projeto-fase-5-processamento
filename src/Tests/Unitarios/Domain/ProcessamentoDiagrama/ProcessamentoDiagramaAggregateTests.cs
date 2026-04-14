@@ -204,4 +204,66 @@ public class ProcessamentoDiagramaAggregateTests
     }
 
     #endregion
+
+    #region RegistrarDadosOrigem
+
+    [Fact(DisplayName = "Deve registrar dados de origem quando valores validos")]
+    [Trait("Entity", "ProcessamentoDiagrama")]
+    public void RegistrarDadosOrigem_DeveRegistrar_QuandoValoresValidos()
+    {
+        // Arrange
+        var processamento = new ProcessamentoDiagramaBuilder().Build();
+
+        // Act
+        processamento.RegistrarDadosOrigem("s3://bucket/arquivo.png", "arquivo.png", "original.png", "png");
+
+        // Assert
+        processamento.DadosOrigem.ShouldNotBeNull();
+        processamento.DadosOrigem.LocalizacaoUrl.Valor.ShouldBe("s3://bucket/arquivo.png");
+        processamento.DadosOrigem.NomeFisico.Valor.ShouldBe("arquivo.png");
+        processamento.DadosOrigem.NomeOriginal.Valor.ShouldBe("original.png");
+        processamento.DadosOrigem.Extensao.Valor.ShouldBe("png");
+    }
+
+    [Fact(DisplayName = "Deve lancar excecao ao registrar dados de origem com localizacao url vazia")]
+    [Trait("Entity", "ProcessamentoDiagrama")]
+    public void RegistrarDadosOrigem_DeveLancarExcecao_QuandoLocalizacaoUrlVazia()
+    {
+        // Arrange
+        var processamento = new ProcessamentoDiagramaBuilder().Build();
+
+        // Act
+        Action acao = () => processamento.RegistrarDadosOrigem("", "arquivo.png", "original.png", "png");
+
+        // Assert
+        acao.DeveLancarExcecaoDeValidacao("Localização URL não pode ser vazia");
+    }
+
+    [Fact(DisplayName = "Deve permitir sobrescrever dados de origem existentes")]
+    [Trait("Entity", "ProcessamentoDiagrama")]
+    public void RegistrarDadosOrigem_DeveSobrescrever_QuandoJaExiste()
+    {
+        // Arrange
+        var processamento = new ProcessamentoDiagramaBuilder().ComDadosOrigem().Build();
+
+        // Act
+        processamento.RegistrarDadosOrigem("s3://bucket/novo-arquivo.png", "novo.png", "novo-original.png", "pdf");
+
+        // Assert
+        processamento.DadosOrigem!.LocalizacaoUrl.Valor.ShouldBe("s3://bucket/novo-arquivo.png");
+        processamento.DadosOrigem.NomeFisico.Valor.ShouldBe("novo.png");
+    }
+
+    [Fact(DisplayName = "Deve iniciar processamento sem dados de origem preenchidos")]
+    [Trait("Entity", "ProcessamentoDiagrama")]
+    public void DadosOrigem_DeveSerNulo_QuandoNaoRegistrado()
+    {
+        // Arrange & Act
+        var processamento = new ProcessamentoDiagramaBuilder().Build();
+
+        // Assert
+        processamento.DadosOrigem.ShouldBeNull();
+    }
+
+    #endregion
 }
