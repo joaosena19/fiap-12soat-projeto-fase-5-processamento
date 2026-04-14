@@ -13,6 +13,7 @@ public class NewRelicMetricsService : IMetricsService
     private const string EventoProcessamentoIniciado = "ProcessamentoDiagramaIniciado";
     private const string EventoProcessamentoConcluido = "ProcessamentoDiagramaConcluido";
     private const string EventoProcessamentoFalha = "ProcessamentoDiagramaFalha";
+    private const string EventoProcessamentoRejeitado = "ProcessamentoDiagramaRejeitado";
 
     public void RegistrarProcessamentoIniciado(Guid analiseDiagramaId)
     {
@@ -34,6 +35,16 @@ public class NewRelicMetricsService : IMetricsService
     public void RegistrarProcessamentoFalha(Guid analiseDiagramaId, string motivo, int tentativasRealizadas)
     {
         RegistrarEvento(EventoProcessamentoFalha, new Dictionary<string, object>
+        {
+            { LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId },
+            { LogNomesPropriedades.Motivo, motivo },
+            { LogNomesPropriedades.Tentativas, tentativasRealizadas }
+        });
+    }
+
+    public void RegistrarProcessamentoRejeitado(Guid analiseDiagramaId, string motivo, int tentativasRealizadas)
+    {
+        RegistrarEvento(EventoProcessamentoRejeitado, new Dictionary<string, object>
         {
             { LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId },
             { LogNomesPropriedades.Motivo, motivo },

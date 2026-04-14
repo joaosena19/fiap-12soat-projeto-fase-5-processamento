@@ -99,7 +99,7 @@ public class ProcessarDiagramaUseCase
         await gateway.SalvarAsync(processamentoDiagrama);
         await messagePublisher.PublicarProcessamentoErroAsync(processamentoDiagrama, motivo, resultado.OrigemErro, rejeitado: true, podeRetentar: false);
 
-        metrics.RegistrarProcessamentoFalha(processamentoDiagrama.AnaliseDiagramaId, motivo, resultado.TentativasRealizadas);
+        metrics.RegistrarProcessamentoRejeitado(processamentoDiagrama.AnaliseDiagramaId, motivo, resultado.TentativasRealizadas);
 
         logger.ComUseCase(this).ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processamentoDiagrama.AnaliseDiagramaId).ComPropriedade(LogNomesPropriedades.Tentativas, resultado.TentativasRealizadas).LogWarning($"Diagrama rejeitado para {{{LogNomesPropriedades.AnaliseDiagramaId}}}. {LogNomesPropriedades.Motivo}: {{{LogNomesPropriedades.Motivo}}}. {LogNomesPropriedades.Tentativas}: {{{LogNomesPropriedades.Tentativas}}}", processamentoDiagrama.AnaliseDiagramaId, motivo, resultado.TentativasRealizadas);
     }

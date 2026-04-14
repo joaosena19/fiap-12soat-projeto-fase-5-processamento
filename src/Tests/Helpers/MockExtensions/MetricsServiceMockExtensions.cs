@@ -26,4 +26,14 @@ public static class MetricsServiceMockExtensions
     {
         mock.Verify(x => x.RegistrarProcessamentoFalha(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
     }
+
+    public static void DeveTerRegistradoProcessamentoRejeitado(this Mock<IMetricsService> mock)
+    {
+        mock.Verify(x => x.RegistrarProcessamentoRejeitado(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<int>()), Times.AtLeastOnce);
+    }
+
+    public static void NaoDeveTerRegistradoProcessamentoRejeitado(this Mock<IMetricsService> mock)
+    {
+        mock.Verify(x => x.RegistrarProcessamentoRejeitado(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
 }
