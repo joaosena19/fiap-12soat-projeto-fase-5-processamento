@@ -22,16 +22,18 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
 
     private readonly IChatClient _chatClient;
     private readonly IAppLogger _logger;
+    private readonly string _modelo;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
-    public LlmDiagramaAnaliseClient(IChatClient chatClient, ILoggerFactory loggerFactory)
+    public LlmDiagramaAnaliseClient(IChatClient chatClient, ILoggerFactory loggerFactory, string modelo)
     {
         _chatClient = chatClient;
         _logger = loggerFactory.CriarAppLogger<LlmDiagramaAnaliseClient>();
+        _modelo = modelo;
     }
 
     public async Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(Guid analiseDiagramaId, string nomeFisico, byte[] conteudoArquivo, string extensao)
@@ -55,7 +57,7 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
 
         try
         {
-            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogDebug("Iniciando chamada à LLM (Gemini) para {AnaliseDiagramaId}. Arquivo: {NomeFisico}, MediaType: {MediaType}", analiseDiagramaId, nomeFisico, mediaType);
+            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogDebug("Iniciando chamada à LLM ({Modelo}) para {AnaliseDiagramaId}. Arquivo: {NomeFisico}, MediaType: {MediaType}", _modelo, analiseDiagramaId, nomeFisico, mediaType);
 
             var resposta = await _chatClient.GetResponseAsync(mensagens, opcoes);
             var textoResposta = resposta.Text;
@@ -88,7 +90,17 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
         }
         catch (Exception ex)
         {
-            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogError(ex, "Erro na chamada à LLM (Gemini) para {AnaliseDiagramaId}. ExceptionType: {ExceptionType}, Message: {ErrorMessage}", analiseDiagramaId, ex.GetType().FullName ?? ex.GetType().Name, ex.Message);
+            var codigoHttp = ExtrairCodigoHttp(ex);
+
+            if (codigoHttp is 429 or 503)
+            {
+                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                       .LogWarning(ex, "Modelo {Modelo} retornou HTTP {CodigoHttp} para {AnaliseDiagramaId}.", _modelo, codigoHttp, analiseDiagramaId);
+                throw new LlmIndisponivelException(_modelo, codigoHttp, $"Modelo {_modelo} indisponível (HTTP {codigoHttp}): {ex.Message}", ex);
+            }
+
+            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                   .LogError(ex, "Erro na chamada à LLM para {AnaliseDiagramaId}. Modelo: {Modelo}, ExceptionType: {ExceptionType}", analiseDiagramaId, _modelo, ex.GetType().FullName ?? ex.GetType().Name);
             throw new LlmTransientException($"Falha transitória ao consultar a LLM: {ex.Message}", ex);
         }
     }
@@ -134,4 +146,23 @@ public class LlmDiagramaAnaliseClient : IDiagramaAnaliseClient
         ".pdf" => MediaTypePdf,
         _ => MediaTypePadrao
     };
+
+    private static int? ExtrairCodigoHttp(Exception ex)
+    {
+        var atual = ex;
+        while (atual != null)
+        {
+            if (atual is HttpRequestException httpEx && httpEx.StatusCode.HasValue)
+                return (int)httpEx.StatusCode.Value;
+
+            atual = atual.InnerException;
+        }
+
+        if (ex.Message.Contains("429") || ex.Message.Contains("Too Many Requests"))
+            return 429;
+        if (ex.Message.Contains("503") || ex.Message.Contains("Service Unavailable"))
+            return 503;
+
+        return null;
+    }
 }

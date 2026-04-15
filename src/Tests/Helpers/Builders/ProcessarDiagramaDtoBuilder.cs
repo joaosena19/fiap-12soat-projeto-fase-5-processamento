@@ -23,6 +23,18 @@ public class ProcessarDiagramaDtoBuilder
         return this;
     }
 
+    public ProcessarDiagramaDtoBuilder SemLocalizacaoUrl()
+    {
+        _localizacaoUrl = string.Empty;
+        return this;
+    }
+
+    public ProcessarDiagramaDtoBuilder ComLocalizacaoUrl(string localizacaoUrl)
+    {
+        _localizacaoUrl = localizacaoUrl;
+        return this;
+    }
+
     public ProcessarDiagramaDto Build()
     {
         return new ProcessarDiagramaDto

@@ -10,7 +10,7 @@ public class LlmDiagramaAnaliseClientTestFixture
 
     public LlmDiagramaAnaliseClientTestFixture()
     {
-        Client = new LlmDiagramaAnaliseClient(ChatClientMock.Object, new LoggerFactory());
+        Client = new LlmDiagramaAnaliseClient(ChatClientMock.Object, new LoggerFactory(), "gemini-test");
     }
 
     public async Task<ResultadoAnaliseDto> AnalisarAsync(string nomeArquivo = "arquivo.png", byte[]? conteudo = null, string extensao = ".png") =>

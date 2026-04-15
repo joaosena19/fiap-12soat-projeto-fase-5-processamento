@@ -12,22 +12,25 @@ namespace Infrastructure.LLM;
 
 public class DiagramaAnaliseService : IDiagramaAnaliseService
 {
-    private readonly IDiagramaAnaliseClient _client;
+    private readonly LlmOptions _opcoes;
+    private readonly ILlmClientFactory _clientFactory;
     private readonly IArquivoDiagramaDownloader _arquivoDiagramaDownloader;
     private readonly IAppLogger _logger;
+    private readonly ILoggerFactory _loggerFactory;
     private readonly ResiliencePipeline<ResultadoAnaliseDto> _pipeline;
 
-    public DiagramaAnaliseService(IDiagramaAnaliseClient client, IArquivoDiagramaDownloader arquivoDiagramaDownloader, ILoggerFactory loggerFactory, IConfiguration configuration)
+    public DiagramaAnaliseService(LlmOptions opcoes, ILlmClientFactory clientFactory, IArquivoDiagramaDownloader arquivoDiagramaDownloader, ILoggerFactory loggerFactory, IConfiguration configuration)
     {
-        _client = client;
+        _opcoes = opcoes;
+        _clientFactory = clientFactory;
         _arquivoDiagramaDownloader = arquivoDiagramaDownloader;
+        _loggerFactory = loggerFactory;
         _logger = loggerFactory.CriarAppLogger<DiagramaAnaliseService>();
         _pipeline = ResilienciaAnaliseDiagramaPipelineFactory.Criar(ResilienciaAnaliseDiagramaOptions.Criar(configuration), loggerFactory.CreateLogger<DiagramaAnaliseService>());
     }
 
     public async Task<ResultadoAnaliseDto> AnalisarDiagramaAsync(Guid analiseDiagramaId, string nomeFisico, string localizacaoUrl, string extensao)
     {
-        var tentativasRealizadas = 0;
         var cronometro = Stopwatch.StartNew();
 
         if (string.IsNullOrWhiteSpace(localizacaoUrl))
@@ -55,45 +58,85 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
             return CriarResultadoFalha(ex, 0, OrigemErroConstantes.Armazenamento);
         }
 
-        try
-        {
-            var resultado = await ExecutarAnaliseComResilienciaAsync(analiseDiagramaId, nomeFisico, conteudoArquivo, extensao, tentativas => tentativasRealizadas = tentativas);
+        var resultado = await TentarAnalisarComFallbackAsync(analiseDiagramaId, nomeFisico, conteudoArquivo, extensao);
 
-            cronometro.Stop();
-            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
-                   .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
-                   .ComPropriedade(LogNomesPropriedades.Tentativas, tentativasRealizadas)
-                   .LogInformation("Análise LLM concluída para {AnaliseDiagramaId} em {DuracaoMs}ms após {Tentativas} tentativa(s). Sucesso: {Sucesso}", analiseDiagramaId, cronometro.ElapsedMilliseconds, tentativasRealizadas, resultado.Sucesso);
+        cronometro.Stop();
+        _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+               .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
+               .ComPropriedade(LogNomesPropriedades.Tentativas, resultado.TentativasRealizadas)
+               .LogInformation("Análise LLM concluída para {AnaliseDiagramaId} em {DuracaoMs}ms após {Tentativas} tentativa(s). Sucesso: {Sucesso}", analiseDiagramaId, cronometro.ElapsedMilliseconds, resultado.TentativasRealizadas, resultado.Sucesso);
 
-            return resultado;
-        }
-        catch (LlmPermanentException ex)
+        return resultado;
+    }
+
+    private async Task<ResultadoAnaliseDto> TentarAnalisarComFallbackAsync(Guid analiseDiagramaId, string nomeFisico, byte[] conteudoArquivo, string extensao)
+    {
+        var modelos = _opcoes.Modelos;
+        var tentativasTotal = 0;
+
+        for (var i = 0; i < modelos.Count; i++)
         {
-            cronometro.Stop();
+            var modelo = modelos[i];
+            var client = _clientFactory.CriarPara(modelo);
+            var tentativasModelo = 0;
+
             _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
-                   .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
-                   .ComPropriedade(LogNomesPropriedades.Tentativas, tentativasRealizadas)
-                   .LogError(ex, "Falha permanente na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s) em {DuracaoMs}ms. Motivo: {Motivo}", analiseDiagramaId, tentativasRealizadas, cronometro.ElapsedMilliseconds, ex.Message);
-            return CriarResultadoFalha(ex, tentativasRealizadas, OrigemErroConstantes.Llm);
+                   .LogInformation("Tentando modelo {Modelo} ({Indice}/{Total}) para {AnaliseDiagramaId}.", modelo, i + 1, modelos.Count, analiseDiagramaId);
+
+            try
+            {
+                var resultado = await ExecutarAnaliseComResilienciaAsync(analiseDiagramaId, nomeFisico, conteudoArquivo, extensao, client, tentativas => tentativasModelo = tentativas);
+                tentativasTotal += tentativasModelo;
+                return resultado with { TentativasRealizadas = tentativasTotal };
+            }
+            catch (LlmIndisponivelException ex)
+            {
+                tentativasTotal += Math.Max(tentativasModelo, 1);
+
+                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                       .LogWarning("Modelo {Modelo} indisponível (HTTP {CodigoHttp}) para {AnaliseDiagramaId}.", modelo, ex.CodigoHttp, analiseDiagramaId);
+
+                if (i < modelos.Count - 1)
+                    continue;
+
+                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                       .LogError(ex, "Todos os modelos LLM estão indisponíveis para {AnaliseDiagramaId} após {Tentativas} tentativa(s).", analiseDiagramaId, tentativasTotal);
+                return CriarResultadoFalha(ex, tentativasTotal, OrigemErroConstantes.Llm);
+            }
+            catch (LlmPermanentException ex)
+            {
+                tentativasTotal += Math.Max(tentativasModelo, 1);
+
+                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                       .LogError(ex, "Falha permanente na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s).", analiseDiagramaId, tentativasTotal);
+                return CriarResultadoFalha(ex, tentativasTotal, OrigemErroConstantes.Llm);
+            }
+            catch (LlmTransientException ex)
+            {
+                tentativasTotal += tentativasModelo;
+
+                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                       .LogWarning(ex, "Modelo {Modelo} esgotou retries para {AnaliseDiagramaId}.", modelo, analiseDiagramaId);
+
+                if (i < modelos.Count - 1)
+                    continue;
+
+                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                       .LogError(ex, "Todos os modelos LLM falharam para {AnaliseDiagramaId} após {Tentativas} tentativa(s).", analiseDiagramaId, tentativasTotal);
+                return CriarResultadoFalha(ex, tentativasTotal, OrigemErroConstantes.Llm);
+            }
+            catch (Exception ex)
+            {
+                tentativasTotal += Math.Max(tentativasModelo, 1);
+
+                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+                       .LogError(ex, "Falha inesperada ao analisar diagrama para {AnaliseDiagramaId}. ExceptionType: {ExceptionType}", analiseDiagramaId, ex.GetType().FullName ?? ex.GetType().Name);
+                return CriarResultadoFalha(ex, tentativasTotal, OrigemErroConstantes.Desconhecido);
+            }
         }
-        catch (LlmTransientException ex)
-        {
-            cronometro.Stop();
-            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
-                   .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
-                   .ComPropriedade(LogNomesPropriedades.Tentativas, tentativasRealizadas)
-                   .LogError(ex, "Falha transitória na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s) em {DuracaoMs}ms. Motivo: {Motivo}", analiseDiagramaId, tentativasRealizadas, cronometro.ElapsedMilliseconds, ex.Message);
-            return CriarResultadoFalha(ex, tentativasRealizadas, OrigemErroConstantes.Llm);
-        }
-        catch (Exception ex)
-        {
-            cronometro.Stop();
-            _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
-                   .ComPropriedade(LogNomesPropriedades.DuracaoMs, cronometro.ElapsedMilliseconds)
-                   .ComPropriedade(LogNomesPropriedades.Tentativas, tentativasRealizadas)
-                   .LogError(ex, "Falha ao analisar diagrama na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s) em {DuracaoMs}ms. ExceptionType: {ExceptionType}, Motivo: {Motivo}", analiseDiagramaId, tentativasRealizadas, cronometro.ElapsedMilliseconds, ex.GetType().FullName ?? ex.GetType().Name, ex.Message);
-            return CriarResultadoFalha(ex, tentativasRealizadas, OrigemErroConstantes.Desconhecido);
-        }
+
+        _logger.LogError("Nenhum modelo LLM configurado para processar a análise.");
+        return CriarResultadoFalha(new InvalidOperationException("Nenhum modelo LLM disponível."), tentativasTotal, OrigemErroConstantes.Llm);
     }
 
     private async Task<byte[]> BaixarConteudoArquivoAsync(string localizacaoUrl)
@@ -101,7 +144,7 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
         return await _arquivoDiagramaDownloader.BaixarArquivoAsync(localizacaoUrl);
     }
 
-    private async Task<ResultadoAnaliseDto> ExecutarAnaliseComResilienciaAsync(Guid analiseDiagramaId, string nomeFisico, byte[] conteudoArquivo, string extensao, Action<int> atualizarTentativas)
+    private async Task<ResultadoAnaliseDto> ExecutarAnaliseComResilienciaAsync(Guid analiseDiagramaId, string nomeFisico, byte[] conteudoArquivo, string extensao, IDiagramaAnaliseClient client, Action<int> atualizarTentativas)
     {
         var tentativasRealizadas = 0;
 
@@ -113,7 +156,7 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
             if (tentativasRealizadas > 1)
                 _logger.LogWarning($"Nova tentativa de análise do diagrama para {{{LogNomesPropriedades.AnaliseDiagramaId}}}. {{{LogNomesPropriedades.Tentativas}}}", analiseDiagramaId, tentativasRealizadas);
 
-            return await _client.AnalisarDiagramaAsync(analiseDiagramaId, nomeFisico, conteudoArquivo, extensao);
+            return await client.AnalisarDiagramaAsync(analiseDiagramaId, nomeFisico, conteudoArquivo, extensao);
         }, CancellationToken.None);
 
         return resultado with { TentativasRealizadas = tentativasRealizadas };

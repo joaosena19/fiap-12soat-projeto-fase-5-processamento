@@ -141,4 +141,62 @@ public class LlmExceptionsTests
     }
 
     #endregion
+
+    #region LlmIndisponivelException
+
+    [Fact(DisplayName = "Deve criar LlmIndisponivelException com modelo, código HTTP e mensagem")]
+    [Trait("Infrastructure", "LlmIndisponivelException")]
+    public void LlmIndisponivelException_DeveCriarComModeloCodigoHttpEMensagem()
+    {
+        // Act
+        var excecao = new LlmIndisponivelException("gemini-2.5-flash", 429, "Quota excedida");
+
+        // Assert
+        excecao.Modelo.ShouldBe("gemini-2.5-flash");
+        excecao.CodigoHttp.ShouldBe(429);
+        excecao.Message.ShouldBe("Quota excedida");
+        excecao.InnerException.ShouldBeNull();
+    }
+
+    [Fact(DisplayName = "Deve criar LlmIndisponivelException com exceção interna")]
+    [Trait("Infrastructure", "LlmIndisponivelException")]
+    public void LlmIndisponivelException_DeveCriarComExcecaoInterna()
+    {
+        // Arrange
+        var excecaoInterna = new HttpRequestException("rate limited");
+
+        // Act
+        var excecao = new LlmIndisponivelException("gemini-2.5-flash", 429, "Quota excedida", excecaoInterna);
+
+        // Assert
+        excecao.InnerException.ShouldBeSameAs(excecaoInterna);
+        excecao.CodigoHttp.ShouldBe(429);
+    }
+
+    [Fact(DisplayName = "LlmIndisponivelException deve herdar de LlmTransientException")]
+    [Trait("Infrastructure", "LlmIndisponivelException")]
+    public void LlmIndisponivelException_DeveHerdarDeLlmTransientException()
+    {
+        // Act
+        var excecao = new LlmIndisponivelException("gemini-test", 503, "Serviço indisponível");
+
+        // Assert
+        excecao.ShouldBeAssignableTo<LlmTransientException>();
+    }
+
+    [Fact(DisplayName = "LlmIndisponivelException deve ser distinguível de LlmTransientException em runtime")]
+    [Trait("Infrastructure", "LlmIndisponivelException")]
+    public void LlmIndisponivelException_DeveSerDistinguivelDeLlmTransientException()
+    {
+        // Arrange
+        var indisponivel = new LlmIndisponivelException("gemini-test", 429, "Quota");
+        var transiente = new LlmTransientException("Timeout");
+
+        // Assert
+        (indisponivel is LlmIndisponivelException).ShouldBeTrue();
+        (transiente is LlmIndisponivelException).ShouldBeFalse();
+        (indisponivel is LlmTransientException).ShouldBeTrue();
+    }
+
+    #endregion
 }

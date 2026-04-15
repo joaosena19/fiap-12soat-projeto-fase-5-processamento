@@ -67,5 +67,29 @@ public class ProcessamentoDiagramaConfiguration : IEntityTypeConfiguration<Proce
         });
 
         builder.HasIndex(p => p.AnaliseDiagramaId).IsUnique();
+
+        builder.OwnsOne(p => p.DadosOrigem, dadosOrigem =>
+        {
+            dadosOrigem.Property(d => d.LocalizacaoUrl)
+                .HasConversion(v => v.Valor, v => new LocalizacaoUrl(v))
+                .HasColumnName("localizacao_url")
+                .IsRequired()
+                .HasMaxLength(500);
+
+            dadosOrigem.Property(d => d.NomeFisico)
+                .HasConversion(v => v.Valor, v => new NomeFisico(v))
+                .HasColumnName("nome_fisico")
+                .HasMaxLength(200);
+
+            dadosOrigem.Property(d => d.NomeOriginal)
+                .HasConversion(v => v.Valor, v => new NomeOriginal(v))
+                .HasColumnName("nome_original")
+                .HasMaxLength(500);
+
+            dadosOrigem.Property(d => d.Extensao)
+                .HasConversion(v => v.Valor, v => new ExtensaoArquivo(v))
+                .HasColumnName("extensao")
+                .HasMaxLength(20);
+        });
     }
 }

@@ -1,4 +1,5 @@
 using Infrastructure.LLM;
+using System.Net;
 
 namespace Tests.Infrastructure.LLM;
 
@@ -150,5 +151,67 @@ public class LlmDiagramaAnaliseClientTests
 
         // Assert
         resultado.Sucesso.ShouldBeTrue();
+    }
+
+    [Fact(DisplayName = "Deve lançar LlmIndisponivelException quando erro HTTP 429")]
+    [Trait("Infrastructure", "LlmDiagramaAnaliseClient")]
+    public async Task AnalisarDiagramaAsync_DeveLancarLlmIndisponivelException_QuandoHttp429()
+    {
+        // Arrange
+        _fixture.ChatClientMock.AoObterResposta().LancaExcecao(new HttpRequestException("rate limited", null, HttpStatusCode.TooManyRequests));
+
+        // Act & Assert
+        var excecao = await Should.ThrowAsync<LlmIndisponivelException>(() => _fixture.AnalisarAsync());
+        excecao.CodigoHttp.ShouldBe(429);
+        excecao.Modelo.ShouldBe("gemini-test");
+    }
+
+    [Fact(DisplayName = "Deve lançar LlmIndisponivelException quando erro HTTP 503")]
+    [Trait("Infrastructure", "LlmDiagramaAnaliseClient")]
+    public async Task AnalisarDiagramaAsync_DeveLancarLlmIndisponivelException_QuandoHttp503()
+    {
+        // Arrange
+        _fixture.ChatClientMock.AoObterResposta().LancaExcecao(new HttpRequestException("service unavailable", null, HttpStatusCode.ServiceUnavailable));
+
+        // Act & Assert
+        var excecao = await Should.ThrowAsync<LlmIndisponivelException>(() => _fixture.AnalisarAsync());
+        excecao.CodigoHttp.ShouldBe(503);
+        excecao.Modelo.ShouldBe("gemini-test");
+    }
+
+    [Fact(DisplayName = "Deve lançar LlmTransientException quando erro HTTP 500 (não é 429/503)")]
+    [Trait("Infrastructure", "LlmDiagramaAnaliseClient")]
+    public async Task AnalisarDiagramaAsync_DeveLancarLlmTransientException_QuandoHttp500()
+    {
+        // Arrange
+        _fixture.ChatClientMock.AoObterResposta().LancaExcecao(new HttpRequestException("internal server error", null, HttpStatusCode.InternalServerError));
+
+        // Act & Assert
+        var excecao = await Should.ThrowAsync<LlmTransientException>(() => _fixture.AnalisarAsync());
+        (excecao is LlmIndisponivelException).ShouldBeFalse();
+    }
+
+    [Fact(DisplayName = "Deve lançar LlmIndisponivelException quando mensagem contém 429")]
+    [Trait("Infrastructure", "LlmDiagramaAnaliseClient")]
+    public async Task AnalisarDiagramaAsync_DeveLancarLlmIndisponivelException_QuandoMensagemContem429()
+    {
+        // Arrange
+        _fixture.ChatClientMock.AoObterResposta().LancaExcecao(new Exception("Request failed with status 429"));
+
+        // Act & Assert
+        var excecao = await Should.ThrowAsync<LlmIndisponivelException>(() => _fixture.AnalisarAsync());
+        excecao.CodigoHttp.ShouldBe(429);
+    }
+
+    [Fact(DisplayName = "Deve lançar LlmIndisponivelException quando mensagem contém 503")]
+    [Trait("Infrastructure", "LlmDiagramaAnaliseClient")]
+    public async Task AnalisarDiagramaAsync_DeveLancarLlmIndisponivelException_QuandoMensagemContem503()
+    {
+        // Arrange
+        _fixture.ChatClientMock.AoObterResposta().LancaExcecao(new Exception("Service Unavailable 503"));
+
+        // Act & Assert
+        var excecao = await Should.ThrowAsync<LlmIndisponivelException>(() => _fixture.AnalisarAsync());
+        excecao.CodigoHttp.ShouldBe(503);
     }
 }

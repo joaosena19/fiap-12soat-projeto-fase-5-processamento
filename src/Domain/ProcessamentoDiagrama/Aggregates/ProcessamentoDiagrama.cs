@@ -1,5 +1,5 @@
-using Domain.ProcessamentoDiagrama.Enums;
 using Domain.ProcessamentoDiagrama.Entities;
+using Domain.ProcessamentoDiagrama.Enums;
 using Domain.ProcessamentoDiagrama.ValueObjects;
 using Shared.Attributes;
 using Shared.Exceptions;
@@ -15,6 +15,7 @@ public class ProcessamentoDiagrama
     public StatusProcessamento StatusProcessamento { get; private set; } = null!;
     public TentativasProcessamento TentativasProcessamento { get; private set; } = null!;
     public AnaliseResultado? AnaliseResultado { get; private set; }
+    public DadosOrigem? DadosOrigem { get; private set; }
     public HistoricoTemporal HistoricoTemporal { get; private set; } = null!;
 
     // Construtor sem parâmetro para EF Core
@@ -82,5 +83,10 @@ public class ProcessamentoDiagrama
         TentativasProcessamento = new TentativasProcessamento(tentativasRealizadas);
         StatusProcessamento = new StatusProcessamento(StatusProcessamentoEnum.Rejeitado);
         HistoricoTemporal = HistoricoTemporal.MarcarConclusaoProcessamento();
+    }
+
+    public void RegistrarDadosOrigem(string localizacaoUrl, string nomeFisico, string nomeOriginal, string extensao)
+    {
+        DadosOrigem = DadosOrigem.Criar(localizacaoUrl, nomeFisico, nomeOriginal, extensao);
     }
 }

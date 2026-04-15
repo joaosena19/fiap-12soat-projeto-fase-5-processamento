@@ -23,6 +23,8 @@ public class UploadDiagramaConcluidoDtoBuilder
     public UploadDiagramaConcluidoDtoBuilder ComNomeFisico(string valor) { _nomeFisico = valor; return this; }
     public UploadDiagramaConcluidoDtoBuilder ComLocalizacaoUrl(string valor) { _localizacaoUrl = valor; return this; }
 
+    public UploadDiagramaConcluidoDtoBuilder SemLocalizacaoUrl() { _localizacaoUrl = string.Empty; return this; }
+
     public UploadDiagramaConcluidoDto Build() => new()
     {
         CorrelationId = _correlationId,
