@@ -33,13 +33,23 @@ public class WorkerConfigurationTestFixture
     public WorkerConfigurationTestFixture ComConfiguracaoLlmValida()
     {
         _configuracoes["LLM:ApiKey"] = "api-key-teste";
-        _configuracoes["LLM:Model"] = "gemini-test";
+        _configuracoes["LLM:Modelos:0"] = "gemini-test-1";
+        _configuracoes["LLM:Modelos:1"] = "gemini-test-2";
         return this;
     }
 
     public WorkerConfigurationTestFixture SemConfiguracaoLlm(string chave)
     {
-        _configuracoes.Remove($"LLM:{chave}");
+        if (chave == "Modelos")
+        {
+            var modeloKeys = _configuracoes.Keys.Where(k => k.StartsWith("LLM:Modelos:")).ToList();
+            foreach (var key in modeloKeys)
+                _configuracoes.Remove(key);
+        }
+        else
+        {
+            _configuracoes.Remove($"LLM:{chave}");
+        }
         return this;
     }
 

@@ -214,7 +214,6 @@ jobs:
             --from-literal=Mensageria__Topicos__ProcessamentoDiagramaIniciado=fase5-processamento-diagrama-iniciado \
             --from-literal=Mensageria__Topicos__ProcessamentoDiagramaAnalisado=fase5-processamento-diagrama-analisado \
             --from-literal=Mensageria__Topicos__ProcessamentoDiagramaErro=fase5-processamento-diagrama-erro \
-            --from-literal=LLM__Model=gemini-3.1-flash-lite-preview \
             --from-literal=NEW_RELIC_APP_NAME=ProcessamentoService \
             --from-literal=NEW_RELIC_APPLICATION_LOGGING_ENABLED=true \
             --from-literal=NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED=true \

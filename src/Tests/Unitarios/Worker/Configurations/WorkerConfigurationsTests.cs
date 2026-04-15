@@ -5,7 +5,6 @@ using Infrastructure.Armazenamento;
 using Infrastructure.Database;
 using Infrastructure.LLM;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Tests.Helpers.Fixtures;
 using Worker.Configurations;
@@ -79,13 +78,12 @@ public class WorkerConfigurationsTests
         // Act
         var retorno = fixture.Services.AddLlmServices(fixture.BuildConfiguration());
         using var provider = fixture.BuildServiceProvider();
-        using var scope = provider.CreateScope();
 
         // Assert
         retorno.ShouldBe(fixture.Services);
-        provider.GetService<IChatClient>().ShouldNotBeNull();
-        scope.ServiceProvider.GetService<IDiagramaAnaliseClient>().ShouldNotBeNull();
+        provider.GetService<LlmOptions>().ShouldNotBeNull();
         fixture.Services.Any(descriptor => descriptor.ServiceType == typeof(IDiagramaAnaliseService)).ShouldBeTrue();
+        fixture.Services.Any(descriptor => descriptor.ServiceType == typeof(ILlmClientFactory)).ShouldBeTrue();
     }
 
     [Fact(DisplayName = "Deve lançar exceção quando api key da LLM não está configurada")]
@@ -104,14 +102,14 @@ public class WorkerConfigurationsTests
         acao.ShouldThrow<InvalidOperationException>();
     }
 
-    [Fact(DisplayName = "Deve lançar exceção quando model da LLM não está configurado")]
+    [Fact(DisplayName = "Deve lançar exceção quando modelos da LLM não estão configurados")]
     [Trait("Worker", "LlmConfiguration")]
-    public void AddLlmServices_DeveLancarExcecao_QuandoModelNaoConfigurado()
+    public void AddLlmServices_DeveLancarExcecao_QuandoModelosNaoConfigurados()
     {
         // Arrange
         var fixture = new WorkerConfigurationTestFixture()
             .ComConfiguracaoLlmValida()
-            .SemConfiguracaoLlm("Model");
+            .SemConfiguracaoLlm("Modelos");
 
         // Act
         var acao = () => fixture.Services.AddLlmServices(fixture.BuildConfiguration());
