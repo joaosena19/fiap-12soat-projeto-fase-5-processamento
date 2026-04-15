@@ -79,6 +79,7 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
             var modelo = modelos[i];
             var client = _clientFactory.CriarPara(modelo);
             var tentativasModelo = 0;
+            var ehUltimoModelo = i >= modelos.Count - 1;
 
             _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
                    .LogInformation("Tentando modelo {Modelo} ({Indice}/{Total}) para {AnaliseDiagramaId}.", modelo, i + 1, modelos.Count, analiseDiagramaId);
@@ -92,51 +93,71 @@ public class DiagramaAnaliseService : IDiagramaAnaliseService
             catch (LlmIndisponivelException ex)
             {
                 tentativasTotal += Math.Max(tentativasModelo, 1);
-
-                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
-                       .LogWarning("Modelo {Modelo} indisponível (HTTP {CodigoHttp}) para {AnaliseDiagramaId}.", modelo, ex.CodigoHttp, analiseDiagramaId);
-
-                if (i < modelos.Count - 1)
-                    continue;
-
-                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
-                       .LogError(ex, "Todos os modelos LLM estão indisponíveis para {AnaliseDiagramaId} após {Tentativas} tentativa(s).", analiseDiagramaId, tentativasTotal);
-                return CriarResultadoFalha(ex, tentativasTotal, OrigemErroConstantes.Llm);
+                var (deveContinuar, resultado) = TratarModeloIndisponivel(analiseDiagramaId, modelo, ex, ehUltimoModelo, tentativasTotal);
+                if (deveContinuar) continue;
+                return resultado!;
             }
             catch (LlmPermanentException ex)
             {
                 tentativasTotal += Math.Max(tentativasModelo, 1);
-
-                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
-                       .LogError(ex, "Falha permanente na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s).", analiseDiagramaId, tentativasTotal);
-                return CriarResultadoFalha(ex, tentativasTotal, OrigemErroConstantes.Llm);
+                return TratarFalhaPermanente(analiseDiagramaId, ex, tentativasTotal);
             }
             catch (LlmTransientException ex)
             {
                 tentativasTotal += tentativasModelo;
-
-                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
-                       .LogWarning(ex, "Modelo {Modelo} esgotou retries para {AnaliseDiagramaId}.", modelo, analiseDiagramaId);
-
-                if (i < modelos.Count - 1)
-                    continue;
-
-                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
-                       .LogError(ex, "Todos os modelos LLM falharam para {AnaliseDiagramaId} após {Tentativas} tentativa(s).", analiseDiagramaId, tentativasTotal);
-                return CriarResultadoFalha(ex, tentativasTotal, OrigemErroConstantes.Llm);
+                var (deveContinuar, resultado) = TratarFalhaTransitoria(analiseDiagramaId, modelo, ex, ehUltimoModelo, tentativasTotal);
+                if (deveContinuar) continue;
+                return resultado!;
             }
             catch (Exception ex)
             {
                 tentativasTotal += Math.Max(tentativasModelo, 1);
-
-                _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
-                       .LogError(ex, "Falha inesperada ao analisar diagrama para {AnaliseDiagramaId}. ExceptionType: {ExceptionType}", analiseDiagramaId, ex.GetType().FullName ?? ex.GetType().Name);
-                return CriarResultadoFalha(ex, tentativasTotal, OrigemErroConstantes.Desconhecido);
+                return TratarFalhaInesperada(analiseDiagramaId, ex, tentativasTotal);
             }
         }
 
         _logger.LogError("Nenhum modelo LLM configurado para processar a análise.");
         return CriarResultadoFalha(new InvalidOperationException("Nenhum modelo LLM disponível."), tentativasTotal, OrigemErroConstantes.Llm);
+    }
+
+    private (bool DeveContinuar, ResultadoAnaliseDto? Resultado) TratarModeloIndisponivel(Guid analiseDiagramaId, string modelo, LlmIndisponivelException ex, bool ehUltimoModelo, int tentativasTotal)
+    {
+        _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+               .LogWarning("Modelo {Modelo} indisponível (HTTP {CodigoHttp}) para {AnaliseDiagramaId}.", modelo, ex.CodigoHttp, analiseDiagramaId);
+
+        if (!ehUltimoModelo)
+            return (true, null);
+
+        _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+               .LogError(ex, "Todos os modelos LLM estão indisponíveis para {AnaliseDiagramaId} após {Tentativas} tentativa(s).", analiseDiagramaId, tentativasTotal);
+        return (false, CriarResultadoFalha(ex, tentativasTotal, OrigemErroConstantes.Llm));
+    }
+
+    private ResultadoAnaliseDto TratarFalhaPermanente(Guid analiseDiagramaId, LlmPermanentException ex, int tentativasTotal)
+    {
+        _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+               .LogError(ex, "Falha permanente na LLM para {AnaliseDiagramaId} após {Tentativas} tentativa(s).", analiseDiagramaId, tentativasTotal);
+        return CriarResultadoFalha(ex, tentativasTotal, OrigemErroConstantes.Llm);
+    }
+
+    private (bool DeveContinuar, ResultadoAnaliseDto? Resultado) TratarFalhaTransitoria(Guid analiseDiagramaId, string modelo, LlmTransientException ex, bool ehUltimoModelo, int tentativasTotal)
+    {
+        _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+               .LogWarning(ex, "Modelo {Modelo} esgotou retries para {AnaliseDiagramaId}.", modelo, analiseDiagramaId);
+
+        if (!ehUltimoModelo)
+            return (true, null);
+
+        _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+               .LogError(ex, "Todos os modelos LLM falharam para {AnaliseDiagramaId} após {Tentativas} tentativa(s).", analiseDiagramaId, tentativasTotal);
+        return (false, CriarResultadoFalha(ex, tentativasTotal, OrigemErroConstantes.Llm));
+    }
+
+    private ResultadoAnaliseDto TratarFalhaInesperada(Guid analiseDiagramaId, Exception ex, int tentativasTotal)
+    {
+        _logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId)
+               .LogError(ex, "Falha inesperada ao analisar diagrama para {AnaliseDiagramaId}. ExceptionType: {ExceptionType}", analiseDiagramaId, ex.GetType().FullName ?? ex.GetType().Name);
+        return CriarResultadoFalha(ex, tentativasTotal, OrigemErroConstantes.Desconhecido);
     }
 
     private async Task<byte[]> BaixarConteudoArquivoAsync(string localizacaoUrl)
