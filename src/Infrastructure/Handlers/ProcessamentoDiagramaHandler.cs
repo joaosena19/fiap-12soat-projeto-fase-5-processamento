@@ -42,7 +42,16 @@ public class ProcessamentoDiagramaHandler : BaseHandler
 
         if (string.IsNullOrWhiteSpace(processarDiagramaDto.LocalizacaoUrl))
         {
-            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogWarning("Mensagem com LocalizacaoUrl vazia para {AnaliseDiagramaId}, ignorando mensagem com dados incompletos", processarDiagramaDto.AnaliseDiagramaId);
+            if (processamentoExistente != null)
+            {
+                logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogWarning("LocalizacaoUrl vazia e irrecuperável para {AnaliseDiagramaId}. Publicando erro por dados de origem incompletos.", processarDiagramaDto.AnaliseDiagramaId);
+                await messagePublisher.PublicarProcessamentoErroAsync(processamentoExistente, "LocalizacaoUrl não disponível — dados de origem não encontrados para recuperação", podeRetentar: false);
+            }
+            else
+            {
+                logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogWarning("Mensagem com LocalizacaoUrl vazia para {AnaliseDiagramaId}, ignorando mensagem com dados incompletos", processarDiagramaDto.AnaliseDiagramaId);
+            }
+
             return;
         }
 

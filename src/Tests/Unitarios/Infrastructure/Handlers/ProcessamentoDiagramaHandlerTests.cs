@@ -126,6 +126,7 @@ public class ProcessamentoDiagramaHandlerTests
         // Assert
         _fixture.LlmServiceMock.NaoDeveTerAnalisado();
         _fixture.GatewayMock.NaoDeveTerSalvo();
+        _fixture.MessagePublisherMock.NaoDeveTerPublicadoProcessamentoErro();
         _fixture.LoggerMock.DeveTerLogadoWarning();
     }
 
@@ -154,9 +155,9 @@ public class ProcessamentoDiagramaHandlerTests
         _fixture.LoggerMock.DeveTerLogadoWarning();
     }
 
-    [Fact(DisplayName = "Deve ignorar mensagem quando retry com url vazia e sem dados de origem no banco")]
+    [Fact(DisplayName = "Deve publicar erro quando retry com url vazia e sem dados de origem no banco")]
     [Trait("Handler", "ProcessamentoDiagramaHandler")]
-    public async Task IniciarProcessamentoAsync_DeveIgnorar_QuandoRetryComUrlVaziaESemDadosOrigem()
+    public async Task IniciarProcessamentoAsync_DevePublicarErro_QuandoRetryComUrlVaziaESemDadosOrigem()
     {
         // Arrange
         var dto = new ProcessarDiagramaDtoBuilder().SemLocalizacaoUrl().Build();
@@ -173,6 +174,7 @@ public class ProcessamentoDiagramaHandlerTests
         // Assert
         _fixture.LlmServiceMock.NaoDeveTerAnalisado();
         _fixture.GatewayMock.NaoDeveTerSalvo();
+        _fixture.MessagePublisherMock.DeveTerPublicadoProcessamentoErro();
         _fixture.LoggerMock.DeveTerLogadoWarning();
     }
 
