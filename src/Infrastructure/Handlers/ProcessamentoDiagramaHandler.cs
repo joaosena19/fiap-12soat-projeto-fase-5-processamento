@@ -14,55 +14,86 @@ namespace Infrastructure.Handlers;
 
 public class ProcessamentoDiagramaHandler : BaseHandler
 {
+    private static readonly HashSet<StatusProcessamentoEnum> StatusTerminaisOuEmAndamento =
+    [
+        StatusProcessamentoEnum.EmProcessamento,
+        StatusProcessamentoEnum.Concluido,
+        StatusProcessamentoEnum.Rejeitado
+    ];
+
     public ProcessamentoDiagramaHandler(ILoggerFactory loggerFactory) : base(loggerFactory) { }
 
     public async Task IniciarProcessamentoAsync(ProcessarDiagramaDto processarDiagramaDto, IProcessamentoDiagramaGateway gateway, IDiagramaAnaliseService llmService, IProcessamentoDiagramaMessagePublisher messagePublisher, IMetricsService metrics, IAppLogger logger)
     {
         var processamentoExistente = await gateway.ObterPorAnaliseDiagramaIdAsync(processarDiagramaDto.AnaliseDiagramaId);
 
-        if (processamentoExistente?.StatusProcessamento.Valor == StatusProcessamentoEnum.EmProcessamento)
-        {
-            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogInformation("Processamento já em andamento, ignorando mensagem duplicada para {AnaliseDiagramaId}", processarDiagramaDto.AnaliseDiagramaId);
+        if (DeveIgnorar(processamentoExistente, processarDiagramaDto.AnaliseDiagramaId, logger))
             return;
-        }
-
-        if (processamentoExistente?.StatusProcessamento.Valor == StatusProcessamentoEnum.Concluido)
-        {
-            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogInformation("Processamento já concluído, ignorando mensagem duplicada para {AnaliseDiagramaId}", processarDiagramaDto.AnaliseDiagramaId);
-            return;
-        }
-
-        if (processamentoExistente?.StatusProcessamento.Valor == StatusProcessamentoEnum.Rejeitado)
-        {
-            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogInformation("Processamento rejeitado (imagem inválida), ignorando para {AnaliseDiagramaId}", processarDiagramaDto.AnaliseDiagramaId);
-            return;
-        }
 
         processarDiagramaDto = TentarRecuperarLocalizacaoUrl(processarDiagramaDto, processamentoExistente, logger);
 
-        if (string.IsNullOrWhiteSpace(processarDiagramaDto.LocalizacaoUrl))
-        {
-            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogWarning("Mensagem com LocalizacaoUrl vazia para {AnaliseDiagramaId}, ignorando mensagem com dados incompletos", processarDiagramaDto.AnaliseDiagramaId);
+        if (!await ValidarLocalizacaoUrlAsync(processarDiagramaDto, processamentoExistente, messagePublisher, logger))
             return;
-        }
 
         if (processamentoExistente == null)
-        {
-            try
-            {
-                var processamento = Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama.Criar(processarDiagramaDto.AnaliseDiagramaId);
-                processamento.RegistrarDadosOrigem(processarDiagramaDto.LocalizacaoUrl, processarDiagramaDto.NomeFisico, processarDiagramaDto.NomeOriginal, processarDiagramaDto.Extensao);
-                await gateway.SalvarAsync(processamento);
-                logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogDebug("Registro inicial de processamento criado para {AnaliseDiagramaId}", processarDiagramaDto.AnaliseDiagramaId);
-            }
-            catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
-            {
-                logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogWarning("Mensagem duplicada detectada (constraint violation), ignorando para {AnaliseDiagramaId}", processarDiagramaDto.AnaliseDiagramaId);
+            if (!await TentarCriarRegistroInicialAsync(processarDiagramaDto, gateway, logger))
                 return;
-            }
-        }
 
         await ProcessarDiagramaAsync(processarDiagramaDto, gateway, llmService, messagePublisher, metrics);
+    }
+
+    private static bool DeveIgnorar(Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama? processamentoExistente, Guid analiseDiagramaId, IAppLogger logger)
+    {
+        if (processamentoExistente == null)
+            return false;
+
+        var status = processamentoExistente.StatusProcessamento.Valor;
+        if (!StatusTerminaisOuEmAndamento.Contains(status))
+            return false;
+
+        var motivo = status switch
+        {
+            StatusProcessamentoEnum.EmProcessamento => "Processamento já em andamento, ignorando mensagem duplicada",
+            StatusProcessamentoEnum.Concluido => "Processamento já concluído, ignorando mensagem duplicada",
+            StatusProcessamentoEnum.Rejeitado => "Processamento rejeitado (imagem inválida), ignorando",
+            _ => "Status terminal detectado, ignorando"
+        };
+
+        logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, analiseDiagramaId).LogInformation(motivo + " para {AnaliseDiagramaId}", analiseDiagramaId);
+        return true;
+    }
+
+    private static async Task<bool> ValidarLocalizacaoUrlAsync(ProcessarDiagramaDto processarDiagramaDto, Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama? processamentoExistente, IProcessamentoDiagramaMessagePublisher messagePublisher, IAppLogger logger)
+    {
+        if (!string.IsNullOrWhiteSpace(processarDiagramaDto.LocalizacaoUrl))
+            return true;
+
+        if (processamentoExistente != null)
+        {
+            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogWarning("LocalizacaoUrl vazia e irrecuperável para {AnaliseDiagramaId}. Publicando erro por dados de origem incompletos.", processarDiagramaDto.AnaliseDiagramaId);
+            await messagePublisher.PublicarProcessamentoErroAsync(processamentoExistente, "LocalizacaoUrl não disponível — dados de origem não encontrados para recuperação", podeRetentar: false);
+        }
+        else
+            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogWarning("Mensagem com LocalizacaoUrl vazia para {AnaliseDiagramaId}, ignorando mensagem com dados incompletos", processarDiagramaDto.AnaliseDiagramaId);
+
+        return false;
+    }
+
+    private static async Task<bool> TentarCriarRegistroInicialAsync(ProcessarDiagramaDto processarDiagramaDto, IProcessamentoDiagramaGateway gateway, IAppLogger logger)
+    {
+        try
+        {
+            var processamento = Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama.Criar(processarDiagramaDto.AnaliseDiagramaId);
+            processamento.RegistrarDadosOrigem(processarDiagramaDto.LocalizacaoUrl, processarDiagramaDto.NomeFisico, processarDiagramaDto.NomeOriginal, processarDiagramaDto.Extensao);
+            await gateway.SalvarAsync(processamento);
+            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogDebug("Registro inicial de processamento criado para {AnaliseDiagramaId}", processarDiagramaDto.AnaliseDiagramaId);
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+        {
+            logger.ComPropriedade(LogNomesPropriedades.AnaliseDiagramaId, processarDiagramaDto.AnaliseDiagramaId).LogWarning("Mensagem duplicada detectada (constraint violation), ignorando para {AnaliseDiagramaId}", processarDiagramaDto.AnaliseDiagramaId);
+            return false;
+        }
     }
 
     private static ProcessarDiagramaDto TentarRecuperarLocalizacaoUrl(ProcessarDiagramaDto dto, Domain.ProcessamentoDiagrama.Aggregates.ProcessamentoDiagrama? processamentoExistente, IAppLogger logger)
